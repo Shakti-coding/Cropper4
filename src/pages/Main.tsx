@@ -325,8 +325,6 @@ function Main({ appName, aboutText } :any) {
     const [enableWatermark, setEnableWatermark] = useState<boolean>(false);
     const [enableBorder, setEnableBorder] = useState<boolean>(false);
     const [enableSignature, setEnableSignature] = useState<boolean>(false);
-    const [isRearrangeMode, setIsRearrangeMode] = useState<boolean>(false);
-    const [currentPreviewIndex, setCurrentPreviewIndex] = useState<number>(0);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
@@ -476,57 +474,6 @@ function Main({ appName, aboutText } :any) {
             newSet.delete(index);
             return newSet;
         });
-    };
-
-    const handleDragStart = (e: React.DragEvent, index: number) => {
-        if (!isRearrangeMode) return;
-        e.dataTransfer.setData('text/plain', index.toString());
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        if (!isRearrangeMode) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-        if (!isRearrangeMode) return;
-        e.preventDefault();
-        const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-        
-        if (dragIndex !== dropIndex) {
-            setFiles(prev => {
-                const newFiles = [...prev];
-                const draggedFile = newFiles[dragIndex];
-                newFiles.splice(dragIndex, 1);
-                newFiles.splice(dropIndex, 0, draggedFile);
-                return newFiles;
-            });
-
-            // Update crops with new indices
-            setCrops(prev => {
-                const newCrops: any = {};
-                const oldCrops = { ...prev };
-                
-                files.forEach((_, oldIndex) => {
-                    let newIndex = oldIndex;
-                    if (oldIndex === dragIndex) {
-                        newIndex = dropIndex;
-                    } else if (dragIndex < dropIndex && oldIndex > dragIndex && oldIndex <= dropIndex) {
-                        newIndex = oldIndex - 1;
-                    } else if (dragIndex > dropIndex && oldIndex < dragIndex && oldIndex >= dropIndex) {
-                        newIndex = oldIndex + 1;
-                    }
-                    
-                    if (oldCrops[oldIndex]) {
-                        newCrops[newIndex] = oldCrops[oldIndex];
-                    }
-                });
-                
-                return newCrops;
-            });
-        }
     };
 
     // Selection handlers
@@ -803,16 +750,15 @@ function Main({ appName, aboutText } :any) {
     };
 
     const generateQualityPreview = () => {
-        // Use the current preview index to show different images
-        const imageIndex = Math.min(currentPreviewIndex, files.length - 1);
-        const cropKey = imageIndex.toString();
+        // Use the first cropped image if available, otherwise create a sample
+        const firstCropKey = Object.keys(crops)[0];
 
-        if (crops[cropKey] && crops[cropKey].width && crops[cropKey].height) {
+        if (firstCropKey && crops[firstCropKey]) {
             // Generate cropped image for preview
-            const crop = crops[cropKey];
-            const croppedImage = generateCroppedImage(crop, imageIndex);
+            const crop = crops[firstCropKey];
+            const croppedImage = generateCroppedImage(crop, parseInt(firstCropKey));
             setQualityPreviewImage(croppedImage.dataUrl);
-        } else if (files.length > 0 && files[imageIndex]) {
+        } else if (files.length > 0) {
             // Fallback to original image if no crops exist yet
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -824,7 +770,7 @@ function Main({ appName, aboutText } :any) {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     setQualityPreviewImage(canvas.toDataURL());
                 };
-                img.src = URL.createObjectURL(files[imageIndex]);
+                img.src = URL.createObjectURL(files[0]);
             }
         } else {
             // Create sample image
@@ -849,12 +795,6 @@ function Main({ appName, aboutText } :any) {
 
                 setQualityPreviewImage(canvas.toDataURL());
             }
-        }
-    };
-
-    const nextPreviewImage = () => {
-        if (files.length > 0) {
-            setCurrentPreviewIndex((prev) => (prev + 1) % files.length);
         }
     };
 
@@ -925,19 +865,12 @@ function Main({ appName, aboutText } :any) {
         }
     }, [selectedFilter, adjustmentValues, watermarkText, borderWidth, borderColor, signatureText, enableWatermark, enableBorder, enableSignature, qualityPreviewImage]);
 
-    // Auto-generate preview when quality panel opens or preview index changes
+    // Auto-generate preview when quality panel opens
     useEffect(() => {
         if (showQualityPanel && !qualityPreviewImage) {
             generateQualityPreview();
         }
     }, [showQualityPanel]);
-
-    // Update preview when current preview index changes
-    useEffect(() => {
-        if (showQualityPanel) {
-            generateQualityPreview();
-        }
-    }, [currentPreviewIndex]);
 
     // Add preview effects event listener
     useEffect(() => {
@@ -1682,7 +1615,7 @@ function Main({ appName, aboutText } :any) {
             {/* Cropping View */}
             {currentView === 'crop' && (
                 <>
-                    <div className={files.length > 0 ? "top-header" : undefined} style={{display: "flex", justifyContent: "space-between", position: "sticky", top: 0, left: 0, zIndex: 999, paddingBottom: "10px"}}>
+                    <div className={files.length > 0 ? "top-header" : undefined} style={{display: "flex", justifyContent: "space-between", position: "sticky", top: 0, left: 0, zIndex: 999}}>
                         <div style={{display: "flex", justifyContent: "space-between", gap: 6, position: "relative"}}>
                             {files.length > 0 && (
                                 <>
@@ -1779,10 +1712,6 @@ function Main({ appName, aboutText } :any) {
                                         <input type="checkbox" checked={gridView} readOnly />
                                         <div className="box-bg">📱 Grid View</div>
                                     </div>
-                                    <div onClick={()=> setIsRearrangeMode((prev:boolean) => !prev)} className="checkbox" title="Enable drag and drop to rearrange images">
-                                        <input type="checkbox" checked={isRearrangeMode} readOnly />
-                                        <div className="box-bg">🔄 Rearrange</div>
-                                    </div>
                                 </div>
 
                                 <div style={{display: "flex", gap: 4, alignItems: "center"}}>
@@ -1806,7 +1735,7 @@ function Main({ appName, aboutText } :any) {
                         )}
                     </div>
 
-                    <div style={{ marginTop: "15px" }}>
+                    <div>
                         <div style={{
                             display: gridView ? "grid" : "flex", 
                             gridTemplateColumns: gridView ? "repeat(auto-fit, minmax(300px, 1fr))" : "none",
@@ -1816,7 +1745,7 @@ function Main({ appName, aboutText } :any) {
                             color: "white",
                             maxWidth: gridView ? "none" : "none",
                             margin: gridView ? "0" : "0",
-                            height: gridView ? "calc(100vh - 250px)" : "auto",
+                            height: gridView ? "calc(100vh - 200px)" : "auto",
                             overflowY: gridView ? "auto" : "visible"
                         }}>
                             {files.length === 0 && (
@@ -1858,16 +1787,10 @@ function Main({ appName, aboutText } :any) {
                                     <div key={file?.name + actualIndex} 
                                          style={{
                                              position: "relative",
-                                             border: isSelected ? "3px solid #4CAF50" : (isRearrangeMode ? "2px dashed #007bff" : "none"),
-                                             borderRadius: "0.5rem",
-                                             cursor: isRearrangeMode ? "move" : "default",
-                                             backgroundColor: isRearrangeMode ? "rgba(0, 123, 255, 0.1)" : "transparent"
+                                             border: isSelected ? "3px solid #4CAF50" : "none",
+                                             borderRadius: "0.5rem"
                                          }}
-                                         draggable={isRearrangeMode}
-                                         onDragStart={(e) => handleDragStart(e, actualIndex)}
-                                         onDragOver={handleDragOver}
-                                         onDrop={(e) => handleDrop(e, actualIndex)}
-                                         onMouseDown={() => !isRearrangeMode && handleMouseDown(actualIndex)}
+                                         onMouseDown={() => handleMouseDown(actualIndex)}
                                          onMouseUp={handleMouseUp}
                                          onMouseLeave={handleMouseUp}
                                     >
@@ -2218,31 +2141,8 @@ function Main({ appName, aboutText } :any) {
                             alignItems: "center",
                             marginBottom: "10px"
                         }}>
-                            <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>
-                                🖼️ Live Preview {files.length > 0 && `(${currentPreviewIndex + 1}/${files.length})`}
-                            </h3>
+                            <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Live Preview</h3>
                             <div style={{ display: 'flex', gap: '5px' }}>
-                                {files.length > 1 && (
-                                    <button 
-                                        onClick={() => {
-                                            nextPreviewImage();
-                                            setTimeout(generateQualityPreview, 100);
-                                        }}
-                                        style={{
-                                            background: "#ff6b35",
-                                            color: "white",
-                                            border: "none",
-                                            padding: "5px 8px",
-                                            borderRadius: "3px",
-                                            cursor: "pointer",
-                                            fontSize: "10px",
-                                            fontWeight: "bold"
-                                        }}
-                                        title="Next image"
-                                    >
-                                        >>>
-                                    </button>
-                                )}
                                 <button 
                                     onClick={() => setShowFloatingPreview(!showFloatingPreview)}
                                     style={{
