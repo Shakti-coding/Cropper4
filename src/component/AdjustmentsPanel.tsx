@@ -232,8 +232,7 @@ const AdjustmentsPanel: React.FC<Props> = ({
   return (
     <div className="adjustments-panel" style={{ padding: '15px' }}>
       <div className="adjustment-header" style={{ marginBottom: '15px' }}>
-        <h3 style={{ margin: 0, color: '#333' }}>🎛️ Image Adjustments</h3>
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button 
             className="comparison-btn"
             onClick={onToggleComparison}

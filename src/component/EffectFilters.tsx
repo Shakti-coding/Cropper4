@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface EffectFilter {
@@ -75,20 +74,19 @@ const EffectFilters: React.FC<Props> = ({ onFilterSelect, selectedFilter }) => {
   const filteredEffects = effectFilters.filter(filter => filter.category === activeCategory);
 
   return (
-    <div className="effect-filters-panel">
-      <div className="effects-header">
-        <h3>🎨 Effect Filters</h3>
-        <div className="filter-categories">
-          {categories.map(category => (
-            <button
-              key={category.key}
-              className={`category-btn ${activeCategory === category.key ? 'active' : ''}`}
-              onClick={() => setActiveCategory(category.key)}
-              title={category.name}
-            >
-              {category.label}
-            </button>
-          ))}
+    <div className="effects-panel" style={{ padding: '15px' }}>
+      <div className="effects-header" style={{ marginBottom: '15px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            className="reset-btn"
+            onClick={() => onFilterSelect(null)}
+            style={{
+              background: '#f8f9fa',
+              color: '#333'
+            }}
+          >
+            🔄 Reset Filter
+          </button>
         </div>
       </div>
 
@@ -100,7 +98,7 @@ const EffectFilters: React.FC<Props> = ({ onFilterSelect, selectedFilter }) => {
           <div className="effect-preview original">Original</div>
           <span>Original</span>
         </div>
-        
+
         {filteredEffects.map(filter => (
           <div
             key={filter.id}

@@ -7,7 +7,7 @@ import About from "../component/About";
 import AdjustmentsPanel from "../component/AdjustmentsPanel";
 import EffectFilters from "../component/EffectFilters";
 import QualityPanel from "../component/QualityPanel";
-import jsPDF from 'jspdf';
+
 
 const cropSizePresets = [
     {name: "Custom", value: null},
@@ -48,6 +48,216 @@ interface CropTab {
     settings: any;
     isActive: boolean;
 }
+
+// Draggable Panel Component
+const DraggablePanel = ({ 
+    title, 
+    onClose, 
+    children, 
+    initialPosition, 
+    initialSize, 
+    borderColor = '#007bff' 
+}: {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+    initialPosition: { x: number; y: number };
+    initialSize: { width: number; height: number };
+    borderColor?: string;
+}) => {
+    const [position, setPosition] = useState(initialPosition);
+    const [size, setSize] = useState(initialSize);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number }>({
+        startX: 0,
+        startY: 0,
+        startPosX: 0,
+        startPosY: 0
+    });
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('.no-drag')) return;
+        
+        setIsDragging(true);
+        dragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            startPosX: position.x,
+            startPosY: position.y
+        };
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!isDragging && !isResizing) return;
+
+        if (isDragging) {
+            const deltaX = e.clientX - dragRef.current.startX;
+            const deltaY = e.clientY - dragRef.current.startY;
+            
+            setPosition({
+                x: Math.max(0, Math.min(window.innerWidth - size.width, dragRef.current.startPosX + deltaX)),
+                y: Math.max(0, Math.min(window.innerHeight - size.height, dragRef.current.startPosY + deltaY))
+            });
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        setIsResizing(false);
+    };
+
+    useEffect(() => {
+        if (isDragging || isResizing) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+        }
+    }, [isDragging, isResizing, position, size]);
+
+    const handleResize = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsResizing(true);
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = size.width;
+        const startHeight = size.height;
+
+        const handleResizeMove = (e: MouseEvent) => {
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            setSize({
+                width: Math.max(280, startWidth + deltaX),
+                height: Math.max(300, startHeight + deltaY)
+            });
+        };
+
+        const handleResizeEnd = () => {
+            setIsResizing(false);
+            document.removeEventListener('mousemove', handleResizeMove);
+            document.removeEventListener('mouseup', handleResizeEnd);
+        };
+
+        document.addEventListener('mousemove', handleResizeMove);
+        document.addEventListener('mouseup', handleResizeEnd);
+    };
+
+    return (
+        <div 
+            style={{
+                position: 'fixed',
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                width: `${size.width}px`,
+                height: isMinimized ? 'auto' : `${size.height}px`,
+                background: 'white',
+                border: `2px solid ${borderColor}`,
+                borderRadius: '10px',
+                zIndex: 1001,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                userSelect: 'none',
+                overflow: 'hidden'
+            }}
+        >
+            {/* Header with drag handle */}
+            <div 
+                onMouseDown={handleMouseDown}
+                style={{
+                    background: borderColor,
+                    color: 'white',
+                    padding: '8px 12px',
+                    borderRadius: '8px 8px 0 0',
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                }}
+            >
+                <span>{title}</span>
+                <div className="no-drag" style={{ display: 'flex', gap: '5px' }}>
+                    <button 
+                        onClick={() => setIsMinimized(!isMinimized)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            padding: '2px 4px'
+                        }}
+                        title={isMinimized ? 'Expand' : 'Minimize'}
+                    >
+                        {isMinimized ? '🔼' : '🔽'}
+                    </button>
+                    <button 
+                        onClick={onClose}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            padding: '2px 4px'
+                        }}
+                        title="Close"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            {/* Content */}
+            {!isMinimized && (
+                <div 
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        overflowX: 'hidden'
+                    }}
+                >
+                    {children}
+                </div>
+            )}
+
+            {/* Resize handle */}
+            {!isMinimized && (
+                <div
+                    className="no-drag"
+                    onMouseDown={handleResize}
+                    style={{
+                        position: 'absolute',
+                        bottom: '0px',
+                        right: '0px',
+                        width: '20px',
+                        height: '20px',
+                        background: borderColor,
+                        cursor: 'nw-resize',
+                        borderRadius: '0 0 8px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px'
+                    }}
+                    title="Drag to resize"
+                >
+                    ↘
+                </div>
+            )}
+        </div>
+    );
+};
 
 function Main({ appName, aboutText } :any) {
     // Tab management
@@ -416,7 +626,7 @@ function Main({ appName, aboutText } :any) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.lineWidth = 2;
 
-        const textWidth = ctx.measureText(watermarkText).width;
+        
         const x = canvas.width - textWidth - 20;
         const y = canvas.height - 20;
 
@@ -655,6 +865,23 @@ function Main({ appName, aboutText } :any) {
         }
     }, [selectedFilter, adjustmentValues, watermarkText, borderWidth, borderColor, signatureText, enableWatermark, enableBorder, enableSignature, qualityPreviewImage]);
 
+    // Auto-generate preview when quality panel opens
+    useEffect(() => {
+        if (showQualityPanel && !qualityPreviewImage) {
+            generateQualityPreview();
+        }
+    }, [showQualityPanel]);
+
+    // Live update preview when effects change
+    useEffect(() => {
+        if (showQualityPanel && qualityPreviewImage) {
+            const timeoutId = setTimeout(() => {
+                applyQualityEffectsToPreview();
+            }, 100);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [selectedFilter, adjustmentValues, enableWatermark, enableBorder, enableSignature, watermarkText, borderWidth, borderColor, signatureText]);
+
     const handleSaveAdjustments = () => {
         // Save original cropped images for undo functionality
         setOriginalCroppedImages({ ...croppedImages });
@@ -802,6 +1029,14 @@ function Main({ appName, aboutText } :any) {
     const generateCroppedImage = (crop: any, index: number) => {
         const resizeImageToCrop = resizeOnExport && cropSize != null && cropSize.width === cropSize.height ? cropSize : crop;
         const image = crop?.image;
+        if (!image || !image.naturalWidth || !image.naturalHeight) {
+            console.error('Invalid image data for crop:', crop, index);
+            return {
+                canvas: null,
+                dataUrl: '',
+                filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
+            };
+        }
         const canvas = document.createElement("canvas");
         const scaleX = image.naturalWidth / image.width;
         const scaleY = image.naturalHeight / image.height;
@@ -865,10 +1100,14 @@ function Main({ appName, aboutText } :any) {
             const crop = crops[index];
             if (crop) {
                 const croppedImage = generateCroppedImage(crop, index);
-                const link = document.createElement('a');
-                link.download = croppedImage.filename;
-                link.href = croppedImage.dataUrl;
-                link.click();
+                if (croppedImage.canvas && croppedImage.dataUrl) {
+                    const link = document.createElement('a');
+                    link.download = croppedImage.filename;
+                    link.href = croppedImage.dataUrl;
+                    link.click();
+                } else {
+                    console.warn(`Skipping image ${index} due to invalid data`);
+                }
             }
         });
     };
@@ -899,6 +1138,10 @@ function Main({ appName, aboutText } :any) {
                 if (crop) {
                     try {
                         const croppedImage = generateCroppedImage(crop, index);
+                        if (!croppedImage.canvas || !croppedImage.dataUrl) {
+                            console.warn(`Skipping image ${index} due to invalid data`);
+                            continue;
+                        }
                         const base64Data = croppedImage.dataUrl.split(',')[1];
                         zip.file(croppedImage.filename, base64Data, { base64: true });
                         
@@ -981,6 +1224,10 @@ function Main({ appName, aboutText } :any) {
                     isFirstPage = false;
 
                     const croppedImage = generateCroppedImage(crop, index);
+                    if (!croppedImage.canvas) {
+                        console.warn(`Skipping image ${index} due to invalid data`);
+                        continue;
+                    }
                     const pageWidth = pdf.internal.pageSize.getWidth();
                     const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -1833,48 +2080,36 @@ function Main({ appName, aboutText } :any) {
 
                     {/* Adjustments Panel Overlay */}
                     {showAdjustments && (
-                        <div style={{
-                            position: 'fixed',
-                            top: '50px',
-                            left: '50px',
-                            width: '350px',
-                            maxHeight: '80vh',
-                            background: 'white',
-                            border: '2px solid #28a745',
-                            borderRadius: '10px',
-                            zIndex: 1001,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                            overflowY: 'auto'
-                        }}>
+                        <DraggablePanel
+                            title="🎛️ Image Adjustments"
+                            onClose={() => setShowAdjustments(false)}
+                            initialPosition={{ x: 50, y: 50 }}
+                            initialSize={{ width: 350, height: 600 }}
+                            borderColor="#28a745"
+                        >
                             <AdjustmentsPanel
                                 onAdjustmentChange={setAdjustmentValues}
                                 onReset={() => setAdjustmentValues(null)}
                                 showComparison={showComparison}
                                 onToggleComparison={() => setShowComparison(!showComparison)}
                             />
-                        </div>
+                        </DraggablePanel>
                     )}
 
                     {/* Effects Panel Overlay */}
                     {showEffects && (
-                        <div style={{
-                            position: 'fixed',
-                            top: '50px',
-                            right: '50px',
-                            width: '300px',
-                            maxHeight: '80vh',
-                            background: 'white',
-                            border: '2px solid #f5576c',
-                            borderRadius: '10px',
-                            zIndex: 1001,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                            overflowY: 'auto'
-                        }}>
+                        <DraggablePanel
+                            title="🎨 Effect Filters"
+                            onClose={() => setShowEffects(false)}
+                            initialPosition={{ x: window.innerWidth - 350, y: 50 }}
+                            initialSize={{ width: 300, height: 500 }}
+                            borderColor="#f5576c"
+                        >
                             <EffectFilters
                                 onFilterSelect={setSelectedFilter}
                                 selectedFilter={selectedFilter}
                             />
-                        </div>
+                        </DraggablePanel>
                     )}
 
                     {/* Live Preview Panel */}
