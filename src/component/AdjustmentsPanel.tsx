@@ -13,67 +13,35 @@ interface AdjustmentValues {
   vibration: number;
   temperature: number;
   tint: number;
-  hue: number;
   
-  // Light adjustments
+  // Tone adjustments
   brightness: number;
-  exposure: number;
   contrast: number;
   highlights: number;
   shadows: number;
   whites: number;
   blacks: number;
   
-  // Detail enhancements
-  sharpen: number;
+  // Clarity adjustments
   clarity: number;
-  smooth: number;
   dehaze: number;
+  sharpen: number;
+  noise: number;
   blur: number;
-  grain: number;
   
-  // Scene filters
+  // Creative adjustments
+  hue: number;
+  split: number;
+  grain: number;
   vignette: number;
-  glamour: number;
-  bloom: number;
-  glow: number;
 }
 
 interface Props {
-  onAdjustmentChange: (adjustments: AdjustmentValues) => void;
+  onAdjustmentChange: (values: AdjustmentValues | null) => void;
   onReset: () => void;
   showComparison: boolean;
   onToggleComparison: () => void;
 }
-
-const defaultAdjustments: AdjustmentValues = {
-  autoEnhance: false,
-  autoColorFix: false,
-  autoWhiteBalance: false,
-  autoTone: false,
-  saturation: 0,
-  vibration: 0,
-  temperature: 0,
-  tint: 0,
-  hue: 0,
-  brightness: 0,
-  exposure: 0,
-  contrast: 0,
-  highlights: 0,
-  shadows: 0,
-  whites: 0,
-  blacks: 0,
-  sharpen: 0,
-  clarity: 0,
-  smooth: 0,
-  dehaze: 0,
-  blur: 0,
-  grain: 0,
-  vignette: 0,
-  glamour: 0,
-  bloom: 0,
-  glow: 0
-};
 
 const AdjustmentsPanel: React.FC<Props> = ({
   onAdjustmentChange,
@@ -81,56 +49,100 @@ const AdjustmentsPanel: React.FC<Props> = ({
   showComparison,
   onToggleComparison
 }) => {
-  const [activeTab, setActiveTab] = useState<'auto' | 'color' | 'light' | 'detail' | 'scene'>('auto');
-  const [adjustments, setAdjustments] = useState<AdjustmentValues>(defaultAdjustments);
+  const [values, setValues] = useState<AdjustmentValues>({
+    autoEnhance: false,
+    autoColorFix: false,
+    autoWhiteBalance: false,
+    autoTone: false,
+    saturation: 0,
+    vibration: 0,
+    temperature: 0,
+    tint: 0,
+    brightness: 0,
+    contrast: 0,
+    highlights: 0,
+    shadows: 0,
+    whites: 0,
+    blacks: 0,
+    clarity: 0,
+    dehaze: 0,
+    sharpen: 0,
+    noise: 0,
+    blur: 0,
+    hue: 0,
+    split: 0,
+    grain: 0,
+    vignette: 0
+  });
+
+  const [expandedSections, setExpandedSections] = useState({
+    auto: true,
+    color: false,
+    tone: false,
+    clarity: false,
+    creative: false
+  });
 
   useEffect(() => {
-    onAdjustmentChange(adjustments);
-  }, [adjustments, onAdjustmentChange]);
-
-  useEffect(() => {
+    // Listen for auto-enhance event
     const handleAutoEnhance = () => {
-      setAdjustments(prev => ({
-        ...prev,
+      const autoValues = {
+        ...values,
         autoEnhance: true,
         brightness: 10,
         contrast: 15,
         saturation: 20,
-        sharpen: 25
-      }));
+        sharpen: 10,
+        clarity: 15
+      };
+      setValues(autoValues);
+      onAdjustmentChange(autoValues);
     };
 
     window.addEventListener('auto-enhance', handleAutoEnhance);
     return () => window.removeEventListener('auto-enhance', handleAutoEnhance);
-  }, []);
+  }, [values, onAdjustmentChange]);
 
-  const updateAdjustment = (key: keyof AdjustmentValues, value: number | boolean) => {
-    setAdjustments(prev => ({ ...prev, [key]: value }));
+  const handleValueChange = (key: keyof AdjustmentValues, value: number | boolean) => {
+    const newValues = { ...values, [key]: value };
+    setValues(newValues);
+    onAdjustmentChange(newValues);
   };
 
-  const resetAdjustments = () => {
-    setAdjustments(defaultAdjustments);
+  const handleReset = () => {
+    const resetValues = {
+      autoEnhance: false,
+      autoColorFix: false,
+      autoWhiteBalance: false,
+      autoTone: false,
+      saturation: 0,
+      vibration: 0,
+      temperature: 0,
+      tint: 0,
+      brightness: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+      clarity: 0,
+      dehaze: 0,
+      sharpen: 0,
+      noise: 0,
+      blur: 0,
+      hue: 0,
+      split: 0,
+      grain: 0,
+      vignette: 0
+    };
+    setValues(resetValues);
     onReset();
   };
 
-  const applyAutoEnhance = () => {
-    setAdjustments(prev => ({
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
       ...prev,
-      autoEnhance: !prev.autoEnhance,
-      brightness: prev.autoEnhance ? 0 : 10,
-      contrast: prev.autoEnhance ? 0 : 15,
-      saturation: prev.autoEnhance ? 0 : 20,
-      sharpen: prev.autoEnhance ? 0 : 25
-    }));
-  };
-
-  const applyAutoColorFix = () => {
-    setAdjustments(prev => ({
-      ...prev,
-      autoColorFix: !prev.autoColorFix,
-      saturation: prev.autoColorFix ? 0 : 25,
-      vibration: prev.autoColorFix ? 0 : 15,
-      temperature: prev.autoColorFix ? 0 : 5
+      [section]: !prev[section]
     }));
   };
 
@@ -159,14 +171,16 @@ const AdjustmentsPanel: React.FC<Props> = ({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="adjustment-slider"
+          style={{ flex: 1 }}
         />
-        <span className="slider-value">{value}</span>
+        <span style={{ minWidth: '40px', textAlign: 'right', fontSize: '12px' }}>
+          {value}
+        </span>
       </div>
     </div>
   );
 
-  const ToggleControl = ({ 
+  const CheckboxControl = ({ 
     label, 
     checked, 
     onChange 
@@ -175,211 +189,264 @@ const AdjustmentsPanel: React.FC<Props> = ({
     checked: boolean;
     onChange: (checked: boolean) => void;
   }) => (
-    <div className="toggle-control" onClick={() => onChange(!checked)}>
-      <input type="checkbox" checked={checked} readOnly />
-      <span>{label}</span>
+    <div className="checkbox-control" style={{ marginBottom: '10px' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span>{label}</span>
+      </label>
+    </div>
+  );
+
+  const SectionHeader = ({ 
+    title, 
+    isExpanded, 
+    onToggle 
+  }: {
+    title: string;
+    isExpanded: boolean;
+    onToggle: () => void;
+  }) => (
+    <div 
+      className="section-header"
+      onClick={onToggle}
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid #eee',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        color: '#333'
+      }}
+    >
+      <span>{title}</span>
+      <span>{isExpanded ? '▼' : '▶'}</span>
     </div>
   );
 
   return (
-    <div className="adjustments-panel">
-      <div className="adjustments-header">
-        <h3>🎛️ Adjustments</h3>
-        <div className="adjustment-tabs">
-          {[
-            { key: 'auto', label: '🤖 Auto' },
-            { key: 'color', label: '🎨 Color' },
-            { key: 'light', label: '💡 Light' },
-            { key: 'detail', label: '🔍 Detail' },
-            { key: 'scene', label: '🎭 Scene' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              className={`tab-button ${activeTab === tab.key ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.key as any)}
-            >
-              {tab.label}
-            </button>
-          ))}
+    <div className="adjustments-panel" style={{ padding: '15px' }}>
+      <div className="adjustment-header" style={{ marginBottom: '15px' }}>
+        <h3 style={{ margin: 0, color: '#333' }}>🎛️ Image Adjustments</h3>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button 
+            className="comparison-btn"
+            onClick={onToggleComparison}
+            style={{
+              background: showComparison ? '#007bff' : '#f8f9fa',
+              color: showComparison ? 'white' : '#333'
+            }}
+          >
+            👁️ Compare
+          </button>
+          <button className="reset-btn" onClick={handleReset}>
+            🔄 Reset All
+          </button>
         </div>
       </div>
 
       <div className="adjustment-content">
-        {activeTab === 'auto' && (
-          <div className="adjustment-group">
-            <h4>🤖 Automatic Enhancements</h4>
-            <ToggleControl
-              label="Auto Enhance"
-              checked={adjustments.autoEnhance}
-              onChange={applyAutoEnhance}
-            />
-            <ToggleControl
-              label="Auto Color Fix"
-              checked={adjustments.autoColorFix}
-              onChange={applyAutoColorFix}
-            />
-            <ToggleControl
-              label="Auto White Balance"
-              checked={adjustments.autoWhiteBalance}
-              onChange={(value) => updateAdjustment('autoWhiteBalance', value)}
-            />
-            <ToggleControl
-              label="Auto Tone"
-              checked={adjustments.autoTone}
-              onChange={(value) => updateAdjustment('autoTone', value)}
-            />
-          </div>
-        )}
+        {/* Auto Presets */}
+        <div>
+          <SectionHeader 
+            title="🤖 Auto Presets" 
+            isExpanded={expandedSections.auto}
+            onToggle={() => toggleSection('auto')}
+          />
+          {expandedSections.auto && (
+            <div style={{ padding: '10px 0' }}>
+              <CheckboxControl 
+                label="✨ Auto Enhance"
+                checked={values.autoEnhance}
+                onChange={(checked) => handleValueChange('autoEnhance', checked)}
+              />
+              <CheckboxControl 
+                label="🎨 Auto Color Fix"
+                checked={values.autoColorFix}
+                onChange={(checked) => handleValueChange('autoColorFix', checked)}
+              />
+              <CheckboxControl 
+                label="⚖️ Auto White Balance"
+                checked={values.autoWhiteBalance}
+                onChange={(checked) => handleValueChange('autoWhiteBalance', checked)}
+              />
+              <CheckboxControl 
+                label="🎭 Auto Tone"
+                checked={values.autoTone}
+                onChange={(checked) => handleValueChange('autoTone', checked)}
+              />
+            </div>
+          )}
+        </div>
 
-        {activeTab === 'color' && (
-          <div className="adjustment-group">
-            <h4>🎨 Color Adjustments</h4>
-            <SliderControl
-              label="Saturation"
-              value={adjustments.saturation}
-              onChange={(value) => updateAdjustment('saturation', value)}
-            />
-            <SliderControl
-              label="Vibration"
-              value={adjustments.vibration}
-              onChange={(value) => updateAdjustment('vibration', value)}
-            />
-            <SliderControl
-              label="Temperature"
-              value={adjustments.temperature}
-              onChange={(value) => updateAdjustment('temperature', value)}
-            />
-            <SliderControl
-              label="Tint"
-              value={adjustments.tint}
-              onChange={(value) => updateAdjustment('tint', value)}
-            />
-            <SliderControl
-              label="Hue"
-              value={adjustments.hue}
-              onChange={(value) => updateAdjustment('hue', value)}
-              min={-180}
-              max={180}
-            />
-          </div>
-        )}
+        {/* Color Adjustments */}
+        <div>
+          <SectionHeader 
+            title="🌈 Color" 
+            isExpanded={expandedSections.color}
+            onToggle={() => toggleSection('color')}
+          />
+          {expandedSections.color && (
+            <div style={{ padding: '10px 0' }}>
+              <SliderControl 
+                label="🎨 Saturation"
+                value={values.saturation}
+                onChange={(value) => handleValueChange('saturation', value)}
+              />
+              <SliderControl 
+                label="✨ Vibrance"
+                value={values.vibration}
+                onChange={(value) => handleValueChange('vibration', value)}
+              />
+              <SliderControl 
+                label="🌡️ Temperature"
+                value={values.temperature}
+                onChange={(value) => handleValueChange('temperature', value)}
+                min={-50}
+                max={50}
+              />
+              <SliderControl 
+                label="🎛️ Tint"
+                value={values.tint}
+                onChange={(value) => handleValueChange('tint', value)}
+                min={-50}
+                max={50}
+              />
+            </div>
+          )}
+        </div>
 
-        {activeTab === 'light' && (
-          <div className="adjustment-group">
-            <h4>💡 Light Adjustments</h4>
-            <SliderControl
-              label="Brightness"
-              value={adjustments.brightness}
-              onChange={(value) => updateAdjustment('brightness', value)}
-            />
-            <SliderControl
-              label="Exposure"
-              value={adjustments.exposure}
-              onChange={(value) => updateAdjustment('exposure', value)}
-            />
-            <SliderControl
-              label="Contrast"
-              value={adjustments.contrast}
-              onChange={(value) => updateAdjustment('contrast', value)}
-            />
-            <SliderControl
-              label="Highlights"
-              value={adjustments.highlights}
-              onChange={(value) => updateAdjustment('highlights', value)}
-            />
-            <SliderControl
-              label="Shadows"
-              value={adjustments.shadows}
-              onChange={(value) => updateAdjustment('shadows', value)}
-            />
-            <SliderControl
-              label="Whites"
-              value={adjustments.whites}
-              onChange={(value) => updateAdjustment('whites', value)}
-            />
-            <SliderControl
-              label="Blacks"
-              value={adjustments.blacks}
-              onChange={(value) => updateAdjustment('blacks', value)}
-            />
-          </div>
-        )}
+        {/* Tone Adjustments */}
+        <div>
+          <SectionHeader 
+            title="🌞 Tone" 
+            isExpanded={expandedSections.tone}
+            onToggle={() => toggleSection('tone')}
+          />
+          {expandedSections.tone && (
+            <div style={{ padding: '10px 0' }}>
+              <SliderControl 
+                label="☀️ Brightness"
+                value={values.brightness}
+                onChange={(value) => handleValueChange('brightness', value)}
+              />
+              <SliderControl 
+                label="⚡ Contrast"
+                value={values.contrast}
+                onChange={(value) => handleValueChange('contrast', value)}
+              />
+              <SliderControl 
+                label="🔆 Highlights"
+                value={values.highlights}
+                onChange={(value) => handleValueChange('highlights', value)}
+              />
+              <SliderControl 
+                label="🌑 Shadows"
+                value={values.shadows}
+                onChange={(value) => handleValueChange('shadows', value)}
+              />
+              <SliderControl 
+                label="⚪ Whites"
+                value={values.whites}
+                onChange={(value) => handleValueChange('whites', value)}
+              />
+              <SliderControl 
+                label="⚫ Blacks"
+                value={values.blacks}
+                onChange={(value) => handleValueChange('blacks', value)}
+              />
+            </div>
+          )}
+        </div>
 
-        {activeTab === 'detail' && (
-          <div className="adjustment-group">
-            <h4>🔍 Detail Enhancements</h4>
-            <SliderControl
-              label="Sharpen"
-              value={adjustments.sharpen}
-              onChange={(value) => updateAdjustment('sharpen', value)}
-            />
-            <SliderControl
-              label="Clarity"
-              value={adjustments.clarity}
-              onChange={(value) => updateAdjustment('clarity', value)}
-            />
-            <SliderControl
-              label="Smooth"
-              value={adjustments.smooth}
-              onChange={(value) => updateAdjustment('smooth', value)}
-            />
-            <SliderControl
-              label="Dehaze"
-              value={adjustments.dehaze}
-              onChange={(value) => updateAdjustment('dehaze', value)}
-            />
-            <SliderControl
-              label="Blur"
-              value={adjustments.blur}
-              onChange={(value) => updateAdjustment('blur', value)}
-              min={0}
-              max={20}
-            />
-            <SliderControl
-              label="Grain"
-              value={adjustments.grain}
-              onChange={(value) => updateAdjustment('grain', value)}
-            />
-          </div>
-        )}
+        {/* Clarity Adjustments */}
+        <div>
+          <SectionHeader 
+            title="🔍 Clarity" 
+            isExpanded={expandedSections.clarity}
+            onToggle={() => toggleSection('clarity')}
+          />
+          {expandedSections.clarity && (
+            <div style={{ padding: '10px 0' }}>
+              <SliderControl 
+                label="💎 Clarity"
+                value={values.clarity}
+                onChange={(value) => handleValueChange('clarity', value)}
+              />
+              <SliderControl 
+                label="🌫️ Dehaze"
+                value={values.dehaze}
+                onChange={(value) => handleValueChange('dehaze', value)}
+              />
+              <SliderControl 
+                label="🔪 Sharpen"
+                value={values.sharpen}
+                onChange={(value) => handleValueChange('sharpen', value)}
+                min={0}
+                max={100}
+              />
+              <SliderControl 
+                label="🔇 Noise Reduction"
+                value={values.noise}
+                onChange={(value) => handleValueChange('noise', value)}
+                min={0}
+                max={100}
+              />
+              <SliderControl 
+                label="🌊 Blur"
+                value={values.blur}
+                onChange={(value) => handleValueChange('blur', value)}
+                min={0}
+                max={20}
+                step={0.1}
+              />
+            </div>
+          )}
+        </div>
 
-        {activeTab === 'scene' && (
-          <div className="adjustment-group">
-            <h4>🎭 Scene Filters</h4>
-            <SliderControl
-              label="Vignette"
-              value={adjustments.vignette}
-              onChange={(value) => updateAdjustment('vignette', value)}
-            />
-            <SliderControl
-              label="Glamour"
-              value={adjustments.glamour}
-              onChange={(value) => updateAdjustment('glamour', value)}
-            />
-            <SliderControl
-              label="Bloom"
-              value={adjustments.bloom}
-              onChange={(value) => updateAdjustment('bloom', value)}
-            />
-            <SliderControl
-              label="Glow"
-              value={adjustments.glow}
-              onChange={(value) => updateAdjustment('glow', value)}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="adjustment-controls">
-        <button 
-          className={`comparison-btn ${showComparison ? 'active' : ''}`}
-          onClick={onToggleComparison}
-        >
-          {showComparison ? '👁️ Hide Compare' : '👁️ Compare'}
-        </button>
-        <button className="reset-btn" onClick={resetAdjustments}>
-          🔄 Reset All
-        </button>
+        {/* Creative Adjustments */}
+        <div>
+          <SectionHeader 
+            title="🎭 Creative" 
+            isExpanded={expandedSections.creative}
+            onToggle={() => toggleSection('creative')}
+          />
+          {expandedSections.creative && (
+            <div style={{ padding: '10px 0' }}>
+              <SliderControl 
+                label="🌈 Hue Shift"
+                value={values.hue}
+                onChange={(value) => handleValueChange('hue', value)}
+                min={-180}
+                max={180}
+              />
+              <SliderControl 
+                label="🎨 Split Toning"
+                value={values.split}
+                onChange={(value) => handleValueChange('split', value)}
+              />
+              <SliderControl 
+                label="📽️ Film Grain"
+                value={values.grain}
+                onChange={(value) => handleValueChange('grain', value)}
+                min={0}
+                max={100}
+              />
+              <SliderControl 
+                label="⭕ Vignette"
+                value={values.vignette}
+                onChange={(value) => handleValueChange('vignette', value)}
+                min={0}
+                max={100}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

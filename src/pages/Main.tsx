@@ -1426,189 +1426,25 @@ function Main({ appName, aboutText } :any) {
                                                 generateQualityPreview();
                                             }
                                         }}
-                                        title="Open Quality Tools"
+                                        title="Open Quality Tools - Draggable & Resizable"
                                         style={{
-                                            background: showQualityPanel ? "#007bff" : "#333",
+                                            background: showQualityPanel ? "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                                             color: "white",
                                             border: "none",
-                                            padding: "5px 10px",
-                                            borderRadius: "3px",
+                                            padding: "8px 16px",
+                                            borderRadius: "6px",
                                             cursor: "pointer",
-                                            fontSize: "12px"
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                                            transition: "all 0.3s ease"
                                         }}
                                     >
                                         🎛️ Quality Tools
                                     </button>
                                 </div>
 
-                                {showQualityPanel && (
-                                    <div className="quality-tools-container" style={{
-                                        position: "fixed",
-                                        top: "100px",
-                                        right: "10px",
-                                        width: "300px",
-                                        maxHeight: "70vh",
-                                        overflowY: "auto",
-                                        background: "white",
-                                        border: "2px solid #007bff",
-                                        borderRadius: "10px",
-                                        zIndex: 1000,
-                                        boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
-                                    }}>
-                                        <QualityPanel
-                                            showAdjustments={showAdjustments}
-                                            onToggleAdjustments={() => setShowAdjustments(!showAdjustments)}
-                                            showEffects={showEffects}
-                                            onToggleEffects={() => setShowEffects(!showEffects)}
-                                            onSharePDF={handleSharePDF}
-                                            darkMode={darkMode}
-                                            onToggleDarkMode={() => setDarkMode(!darkMode)}
-                                            onAddWatermark={handleAddWatermark}
-                                            onAddBorder={handleAddBorder}
-                                            onAddSignature={handleAddSignature}
-                                            onShowPreview={handleShowPreview}
-                                            onSaveAdjustments={handleSaveAdjustments}
-                                            enableWatermark={enableWatermark}
-                                            onToggleWatermark={() => setEnableWatermark(!enableWatermark)}
-                                            enableBorder={enableBorder}
-                                            onToggleBorder={() => setEnableBorder(!enableBorder)}
-                                            enableSignature={enableSignature}
-                                            onToggleSignature={() => setEnableSignature(!enableSignature)}
-                                        />
-
-                                        {/* Live Preview Panel */}
-                                        <div className="quality-preview-panel" style={{
-                                            padding: "15px",
-                                            borderTop: "1px solid #ddd"
-                                        }}>
-                                            <div className="quality-header" style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                marginBottom: "10px"
-                                            }}>
-                                                <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Preview</h3>
-                                                <div style={{ display: 'flex', gap: '5px' }}>
-                                                    <button 
-                                                        onClick={() => setShowFloatingPreview(!showFloatingPreview)}
-                                                        style={{
-                                                            background: "#007bff",
-                                                            color: "white",
-                                                            border: "none",
-                                                            padding: "5px 10px",
-                                                            borderRadius: "3px",
-                                                            cursor: "pointer",
-                                                            fontSize: "10px"
-                                                        }}
-                                                    >
-                                                        {showFloatingPreview ? '📌 Dock' : '🔄 Float'}
-                                                    </button>
-                                                    <button 
-                                                        onClick={generateQualityPreview}
-                                                        style={{
-                                                            background: "#4CAF50",
-                                                            color: "white",
-                                                            border: "none",
-                                                            padding: "5px 10px",
-                                                            borderRadius: "3px",
-                                                            cursor: "pointer",
-                                                            fontSize: "10px"
-                                                        }}
-                                                    >
-                                                        🔄 Refresh
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="preview-content">
-                                                {Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length === 0 ? (
-                                                    <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
-                                                        <p>⚠️ First crop some images</p>
-                                                        <p>to see preview here</p>
-                                                    </div>
-                                                ) : previewImage ? (
-                                                    <div style={{ textAlign: 'center' }}>
-                                                        <div style={{ 
-                                                            position: 'relative', 
-                                                            display: 'inline-block',
-                                                            width: '100%',
-                                                            height: '150px',
-                                                            border: '1px solid #ddd',
-                                                            borderRadius: '5px',
-                                                            overflow: 'hidden'
-                                                        }}>
-                                                            <img 
-                                                                src={previewImage} 
-                                                                alt="Preview"
-                                                                style={{
-                                                                    width: '100%',
-                                                                    height: '100%',
-                                                                    objectFit: 'contain'
-                                                                }}
-                                                                draggable={false}
-                                                            />
-                                                        </div>
-                                                        <div style={{ display: 'flex', gap: '3px', flexDirection: 'column', marginTop: '8px' }}>
-                                                            <button 
-                                                                onClick={handleSaveAdjustments}
-                                                                style={{ 
-                                                                    background: "#4CAF50",
-                                                                    color: "white",
-                                                                    border: "none",
-                                                                    padding: "5px",
-                                                                    borderRadius: "3px",
-                                                                    cursor: "pointer",
-                                                                    fontSize: "11px"
-                                                                }}
-                                                            >
-                                                                💾 Apply to All
-                                                            </button>
-                                                            {Object.keys(originalCroppedImages).length > 0 && (
-                                                                <button 
-                                                                    onClick={handleUndoAdjustments}
-                                                                    style={{ 
-                                                                        background: '#f44336', 
-                                                                        color: 'white',
-                                                                        border: "none",
-                                                                        padding: "5px",
-                                                                        borderRadius: "3px",
-                                                                        cursor: "pointer",
-                                                                        fontSize: '11px'
-                                                                    }}
-                                                                >
-                                                                    ↺ Undo
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
-                                                        <p>🔄 Generating preview...</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {showAdjustments && (
-                                            <div style={{ borderTop: "1px solid #ddd" }}>
-                                                <AdjustmentsPanel
-                                                    onAdjustmentChange={setAdjustmentValues}
-                                                    onReset={() => setAdjustmentValues(null)}
-                                                    showComparison={showComparison}
-                                                    onToggleComparison={() => setShowComparison(!showComparison)}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {showEffects && (
-                                            <div style={{ borderTop: "1px solid #ddd" }}>
-                                                <EffectFilters
-                                                    onFilterSelect={setSelectedFilter}
-                                                    selectedFilter={selectedFilter}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                
 
                                 <div style={{display: "flex", gap: 4, alignItems: "center"}}>
                                     <div onClick={()=> setEnableOCR((prev:boolean) => !prev)} className="checkbox" title="Enable OCR for PDF searchable text">
@@ -1969,6 +1805,202 @@ function Main({ appName, aboutText } :any) {
             {Object.values(croppedImages).map(
                 (croppedImage) =>
                     croppedImage && <img key={croppedImage as any} src={croppedImage as any} alt="uploaded" style={{display: "none"}}></img>
+            )}
+
+            {/* Quality Tools Panel */}
+            {showQualityPanel && (
+                <>
+                    <QualityPanel
+                        showAdjustments={showAdjustments}
+                        onToggleAdjustments={() => setShowAdjustments(!showAdjustments)}
+                        showEffects={showEffects}
+                        onToggleEffects={() => setShowEffects(!showEffects)}
+                        onSharePDF={handleSharePDF}
+                        darkMode={darkMode}
+                        onToggleDarkMode={() => setDarkMode(!darkMode)}
+                        onAddWatermark={handleAddWatermark}
+                        onAddBorder={handleAddBorder}
+                        onAddSignature={handleAddSignature}
+                        onShowPreview={handleShowPreview}
+                        onSaveAdjustments={handleSaveAdjustments}
+                        enableWatermark={enableWatermark}
+                        onToggleWatermark={() => setEnableWatermark(!enableWatermark)}
+                        enableBorder={enableBorder}
+                        onToggleBorder={() => setEnableBorder(!enableBorder)}
+                        enableSignature={enableSignature}
+                        onToggleSignature={() => setEnableSignature(!enableSignature)}
+                    />
+
+                    {/* Adjustments Panel Overlay */}
+                    {showAdjustments && (
+                        <div style={{
+                            position: 'fixed',
+                            top: '50px',
+                            left: '50px',
+                            width: '350px',
+                            maxHeight: '80vh',
+                            background: 'white',
+                            border: '2px solid #28a745',
+                            borderRadius: '10px',
+                            zIndex: 1001,
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            overflowY: 'auto'
+                        }}>
+                            <AdjustmentsPanel
+                                onAdjustmentChange={setAdjustmentValues}
+                                onReset={() => setAdjustmentValues(null)}
+                                showComparison={showComparison}
+                                onToggleComparison={() => setShowComparison(!showComparison)}
+                            />
+                        </div>
+                    )}
+
+                    {/* Effects Panel Overlay */}
+                    {showEffects && (
+                        <div style={{
+                            position: 'fixed',
+                            top: '50px',
+                            right: '50px',
+                            width: '300px',
+                            maxHeight: '80vh',
+                            background: 'white',
+                            border: '2px solid #f5576c',
+                            borderRadius: '10px',
+                            zIndex: 1001,
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            overflowY: 'auto'
+                        }}>
+                            <EffectFilters
+                                onFilterSelect={setSelectedFilter}
+                                selectedFilter={selectedFilter}
+                            />
+                        </div>
+                    )}
+
+                    {/* Live Preview Panel */}
+                    <div style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        left: '20px',
+                        width: '280px',
+                        background: 'white',
+                        border: '2px solid #007bff',
+                        borderRadius: '10px',
+                        zIndex: 1001,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        padding: '15px'
+                    }}>
+                        <div style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "10px"
+                        }}>
+                            <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Live Preview</h3>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <button 
+                                    onClick={() => setShowFloatingPreview(!showFloatingPreview)}
+                                    style={{
+                                        background: "#007bff",
+                                        color: "white",
+                                        border: "none",
+                                        padding: "5px 8px",
+                                        borderRadius: "3px",
+                                        cursor: "pointer",
+                                        fontSize: "10px"
+                                    }}
+                                >
+                                    {showFloatingPreview ? '📌' : '🔄'}
+                                </button>
+                                <button 
+                                    onClick={generateQualityPreview}
+                                    style={{
+                                        background: "#4CAF50",
+                                        color: "white",
+                                        border: "none",
+                                        padding: "5px 8px",
+                                        borderRadius: "3px",
+                                        cursor: "pointer",
+                                        fontSize: "10px"
+                                    }}
+                                >
+                                    🔄
+                                </button>
+                            </div>
+                        </div>
+                        <div className="preview-content">
+                            {Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
+                                    <p>⚠️ First crop some images</p>
+                                    <p>to see preview here</p>
+                                </div>
+                            ) : previewImage ? (
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ 
+                                        position: 'relative', 
+                                        display: 'inline-block',
+                                        width: '100%',
+                                        height: '120px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '5px',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <img 
+                                            src={previewImage} 
+                                            alt="Preview"
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain'
+                                            }}
+                                            draggable={false}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
+                                        <button 
+                                            onClick={handleSaveAdjustments}
+                                            style={{ 
+                                                flex: 1,
+                                                background: "#4CAF50",
+                                                color: "white",
+                                                border: "none",
+                                                padding: "8px",
+                                                borderRadius: "3px",
+                                                cursor: "pointer",
+                                                fontSize: "11px",
+                                                fontWeight: "bold"
+                                            }}
+                                        >
+                                            💾 Apply All
+                                        </button>
+                                        {Object.keys(originalCroppedImages).length > 0 && (
+                                            <button 
+                                                onClick={handleUndoAdjustments}
+                                                style={{ 
+                                                    flex: 1,
+                                                    background: '#f44336', 
+                                                    color: 'white',
+                                                    border: "none",
+                                                    padding: "8px",
+                                                    borderRadius: "3px",
+                                                    cursor: "pointer",
+                                                    fontSize: '11px',
+                                                    fontWeight: "bold"
+                                                }}
+                                            >
+                                                ↺ Undo
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
+                                    <p>🔄 Generating preview...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
