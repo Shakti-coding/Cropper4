@@ -293,6 +293,18 @@
     transform: rotate(45deg); /* Rotate the arrow to point down-right */
 }
 
+/* Pulse animation for separator line */
+@keyframes pulse {
+    from {
+        opacity: 0.8;
+        transform: translateX(-50%) scale(1);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.05);
+    }
+}
+
 .preview-content {
     display: flex;
     flex-direction: column;

@@ -1,4 +1,3 @@
-
 import {useEffect, useRef, useState} from "react";
 import "../App.css";
 import Cropper from "../component/Cropper";
@@ -79,7 +78,7 @@ const DraggablePanel = ({
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('.no-drag')) return;
-        
+
         setIsDragging(true);
         dragRef.current = {
             startX: e.clientX,
@@ -95,7 +94,7 @@ const DraggablePanel = ({
         if (isDragging) {
             const deltaX = e.clientX - dragRef.current.startX;
             const deltaY = e.clientY - dragRef.current.startY;
-            
+
             setPosition({
                 x: Math.max(0, Math.min(window.innerWidth - size.width, dragRef.current.startPosX + deltaX)),
                 y: Math.max(0, Math.min(window.innerHeight - size.height, dragRef.current.startPosY + deltaY))
@@ -112,7 +111,7 @@ const DraggablePanel = ({
         if (isDragging || isResizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
-            
+
             return () => {
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
@@ -123,7 +122,7 @@ const DraggablePanel = ({
     const handleResize = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsResizing(true);
-        
+
         const startX = e.clientX;
         const startY = e.clientY;
         const startWidth = size.width;
@@ -132,7 +131,7 @@ const DraggablePanel = ({
         const handleResizeMove = (e: MouseEvent) => {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
-            
+
             setSize({
                 width: Math.max(280, startWidth + deltaX),
                 height: Math.max(300, startHeight + deltaY)
@@ -277,7 +276,7 @@ function Main({ appName, aboutText } :any) {
         isActive: true
     }]);
     const [activeTabId, setActiveTabId] = useState('tab-1');
-    
+
     // Current tab data
     const activeTab = tabs.find(tab => tab.id === activeTabId) || tabs[0];
     const [files, setFiles] = useState<any[]>(activeTab.files);
@@ -288,20 +287,20 @@ function Main({ appName, aboutText } :any) {
     const [lockMovement, setLockMovement] = useState(activeTab.settings.lockMovement);
     const [centerCrop, setCenterCrop] = useState(activeTab.settings.centerCrop);
     const [enableOCR, setEnableOCR] = useState(activeTab.settings.enableOCR);
-    
+
     // Selection and UI states
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [holdTimer, setHoldTimer] = useState<any>(null);
     const [croppedImages, setCroppedImages] = useState<any>({});
     const [gridView, setGridView] = useState(true);
     const [currentView, setCurrentView] = useState<'crop' | 'history'>('crop');
-    
+
     // Processing and history
     const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [editingTabId, setEditingTabId] = useState<string | null>(null);
     const [editingTabName, setEditingTabName] = useState<string>('');
-    
+
     // Quality panel states
     const [showQualityPanel, setShowQualityPanel] = useState<boolean>(false);
     const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
@@ -382,7 +381,7 @@ function Main({ appName, aboutText } :any) {
         const timeoutId = setTimeout(() => {
             saveCurrentTabState();
         }, 100); // Debounce by 100ms
-        
+
         return () => clearTimeout(timeoutId);
     }, [files, crops, cropSize, keepRatio, resizeOnExport, lockMovement, centerCrop, enableOCR]);
 
@@ -403,14 +402,14 @@ function Main({ appName, aboutText } :any) {
             },
             isActive: true
         };
-        
+
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
     };
 
     const closeTab = (tabId: string) => {
         if (tabs.length === 1) return; // Don't close last tab
-        
+
         setTabs(prev => {
             const filtered = prev.filter(t => t.id !== tabId);
             if (tabId === activeTabId && filtered.length > 0) {
@@ -451,7 +450,7 @@ function Main({ appName, aboutText } :any) {
         // Filter only image files
         const imageFiles = allFiles.filter((file: File) => file.type.startsWith('image/'));
         if (imageFiles.length === 0) return;
-        
+
         // Remove duplicates based on file name and size
         const uniqueFiles = imageFiles.filter((newFile: File) => {
             return !files.some((existingFile: File) => 
@@ -460,9 +459,9 @@ function Main({ appName, aboutText } :any) {
                 existingFile.lastModified === newFile.lastModified
             );
         });
-        
+
         console.log("set new files", { input, files, newFiles: uniqueFiles, filtered: imageFiles.length - uniqueFiles.length });
-        
+
         if (uniqueFiles.length > 0) {
             setFiles(prev => [...prev, ...uniqueFiles]);
         }
@@ -621,7 +620,7 @@ function Main({ appName, aboutText } :any) {
 
     const addWatermark = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableWatermark || !watermarkText?.trim()) return;
-        
+
         const fontSize = Math.max(canvas.width / 20, 16);
         ctx.font = `${fontSize}px Arial`;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -638,7 +637,7 @@ function Main({ appName, aboutText } :any) {
 
     const addBorder = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableBorder || borderWidth <= 0) return;
-        
+
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = borderWidth;
         ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
@@ -646,7 +645,7 @@ function Main({ appName, aboutText } :any) {
 
     const addSignature = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableSignature || !signatureText?.trim()) return;
-        
+
         const fontSize = Math.max(canvas.width / 25, 12);
         ctx.font = `${fontSize}px cursive`;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -915,7 +914,7 @@ function Main({ appName, aboutText } :any) {
 
         // Apply effects to all cropped images immediately
         Object.keys(crops).forEach((key) => {
-            const crop = crops[parseInt(key)];
+            const crop = crops[key];
             if (crop) {
                 const enhancedImage = generateCroppedImage(crop, parseInt(key));
                 setCroppedImages((prev: any) => ({
@@ -1107,7 +1106,7 @@ function Main({ appName, aboutText } :any) {
 
     const onSaveCropped = () => {
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-        
+
         indicesToSave.forEach((index: number) => {
             const crop = crops[index];
             if (crop) {
@@ -1127,7 +1126,7 @@ function Main({ appName, aboutText } :any) {
     const onSaveAsZip = async () => {
         const jobId = `zip-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-        
+
         const newJob: ProcessingJob = {
             id: jobId,
             name: `ZIP Export (${indicesToSave.length} images)`,
@@ -1156,7 +1155,7 @@ function Main({ appName, aboutText } :any) {
                         }
                         const base64Data = croppedImage.dataUrl.split(',')[1];
                         zip.file(croppedImage.filename, base64Data, { base64: true });
-                        
+
                         setProcessingJobs(prev => prev.map(job => 
                             job.id === jobId ? { ...job, progress: i + 1 } : job
                         ));
@@ -1171,7 +1170,7 @@ function Main({ appName, aboutText } :any) {
             link.href = URL.createObjectURL(zipBlob);
             link.download = `cropped_images_${new Date().toISOString().slice(0, 10)}.zip`;
             link.click();
-            
+
             // Clean up URL after a delay
             setTimeout(() => {
                 URL.revokeObjectURL(link.href);
@@ -1204,7 +1203,7 @@ function Main({ appName, aboutText } :any) {
     const onGeneratePDF = async () => {
         const jobId = `pdf-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-        
+
         const newJob: ProcessingJob = {
             id: jobId,
             name: `PDF Export (${indicesToSave.length} images)`,
@@ -1351,7 +1350,7 @@ function Main({ appName, aboutText } :any) {
             settings: historyItem.settings,
             isActive: true
         };
-        
+
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
         setCurrentView('crop');
@@ -1420,15 +1419,15 @@ function Main({ appName, aboutText } :any) {
     // Arrow-based movement functions
     const moveImage = (fromIndex: number, direction: 'up' | 'down' | 'left' | 'right') => {
         if (!rearrangeMode || files.length < 2) return;
-        
+
         let toIndex = fromIndex;
-        
+
         if (gridView) {
             // For grid view, calculate columns based on container width
             const containerWidth = window.innerWidth - 32; // Account for padding
             const itemWidth = 300 + 8; // Min width + gap
             const columns = Math.floor(containerWidth / itemWidth) || 1;
-            
+
             switch (direction) {
                 case 'up':
                     toIndex = Math.max(0, fromIndex - columns);
@@ -1456,17 +1455,17 @@ function Main({ appName, aboutText } :any) {
                     break;
             }
         }
-        
+
         if (toIndex !== fromIndex) {
             const newFiles = [...files];
             const itemToMove = newFiles[fromIndex];
             newFiles.splice(fromIndex, 1);
             newFiles.splice(toIndex, 0, itemToMove);
-            
+
             // Update crops and selected files with the new arrangement
             const newCrops: any = {};
             const newSelectedFiles = new Set<number>();
-            
+
             // Create mapping for the swap
             const indexMapping: { [key: number]: number } = {};
             for (let i = 0; i < files.length; i++) {
@@ -1480,7 +1479,7 @@ function Main({ appName, aboutText } :any) {
                     indexMapping[i] = i;
                 }
             }
-            
+
             // Apply mapping to crops
             Object.entries(crops).forEach(([oldIndex, cropData]) => {
                 const oldIdx = parseInt(oldIndex);
@@ -1489,7 +1488,7 @@ function Main({ appName, aboutText } :any) {
                     newCrops[newIdx] = cropData;
                 }
             });
-            
+
             // Apply mapping to selected files
             selectedFiles.forEach(oldIdx => {
                 const newIdx = indexMapping[oldIdx];
@@ -1497,7 +1496,7 @@ function Main({ appName, aboutText } :any) {
                     newSelectedFiles.add(newIdx);
                 }
             });
-            
+
             setFiles(newFiles);
             setCrops(newCrops);
             setSelectedFiles(newSelectedFiles);
@@ -1802,7 +1801,7 @@ function Main({ appName, aboutText } :any) {
                                     </button>
                                 </div>
 
-                                
+
 
                                 <div style={{display: "flex", gap: 4, alignItems: "center"}}>
                                     <div onClick={()=> setEnableOCR((prev:boolean) => !prev)} className="checkbox" title="Enable OCR for PDF searchable text">
@@ -1835,6 +1834,31 @@ function Main({ appName, aboutText } :any) {
                             </div>
                         )}
                     </div>
+
+                    {/* Beautiful Separator Line */}
+                    {files.length > 0 && (
+                        <div style={{
+                            height: '3px',
+                            background: 'linear-gradient(90deg, transparent 0%, #4CAF50 15%, #2196F3 35%, #FF5722 55%, #9C27B0 75%, transparent 100%)',
+                            margin: '10px 20px',
+                            borderRadius: '2px',
+                            boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                            position: 'relative'
+                        }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '-5px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '100px',
+                                height: '13px',
+                                background: 'linear-gradient(90deg, #4CAF50, #2196F3, #FF5722)',
+                                borderRadius: '10px',
+                                opacity: 0.8,
+                                animation: 'pulse 2s ease-in-out infinite alternate'
+                            }} />
+                        </div>
+                    )}
 
                     <div>
                         <div style={{
@@ -1931,7 +1955,7 @@ function Main({ appName, aboutText } :any) {
                                                 ✓
                                             </div>
                                         )}
-                                        
+
                                         {/* Directional Arrow Controls for Rearrange Mode */}
                                         {rearrangeMode && (
                                             <div style={{
@@ -1982,7 +2006,7 @@ function Main({ appName, aboutText } :any) {
                                                 >
                                                     ↑
                                                 </button>
-                                                
+
                                                 {/* Left and Right Arrows Row */}
                                                 <div style={{ display: "flex", gap: "2px" }}>
                                                     <button
@@ -2017,7 +2041,7 @@ function Main({ appName, aboutText } :any) {
                                                     >
                                                         ←
                                                     </button>
-                                                    
+
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -2051,7 +2075,7 @@ function Main({ appName, aboutText } :any) {
                                                         →
                                                     </button>
                                                 </div>
-                                                
+
                                                 {/* Down Arrow */}
                                                 <button
                                                     onClick={(e) => {
