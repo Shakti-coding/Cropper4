@@ -320,6 +320,7 @@ function Main({ appName, aboutText } :any) {
     const [previewSize, setPreviewSize] = useState({ width: 300, height: 200 });
     const [previewPosition, setPreviewPosition] = useState({ x: 50, y: 50 });
     const [isResizing, setIsResizing] = useState<boolean>(false);
+    const [currentPreviewIndex, setCurrentPreviewIndex] = useState<number>(0);
     const [signatureText, setSignatureText] = useState<string>('');
     const [enableWatermark, setEnableWatermark] = useState<boolean>(false);
     const [enableBorder, setEnableBorder] = useState<boolean>(false);
@@ -1430,10 +1431,14 @@ function Main({ appName, aboutText } :any) {
 
             switch (direction) {
                 case 'up':
-                    toIndex = Math.max(0, fromIndex - columns);
+                    // Only swap with the image directly above
+                    toIndex = fromIndex - columns;
+                    if (toIndex < 0) return; // No image above
                     break;
                 case 'down':
-                    toIndex = Math.min(files.length - 1, fromIndex + columns);
+                    // Only swap with the image directly below
+                    toIndex = fromIndex + columns;
+                    if (toIndex >= files.length) return; // No image below
                     break;
                 case 'left':
                     toIndex = Math.max(0, fromIndex - 1);
@@ -1456,44 +1461,31 @@ function Main({ appName, aboutText } :any) {
             }
         }
 
-        if (toIndex !== fromIndex) {
+        if (toIndex !== fromIndex && toIndex >= 0 && toIndex < files.length) {
+            // Simple swap - only exchange positions between two adjacent images
             const newFiles = [...files];
-            const itemToMove = newFiles[fromIndex];
-            newFiles.splice(fromIndex, 1);
-            newFiles.splice(toIndex, 0, itemToMove);
+            [newFiles[fromIndex], newFiles[toIndex]] = [newFiles[toIndex], newFiles[fromIndex]];
 
-            // Update crops and selected files with the new arrangement
-            const newCrops: any = {};
+            // Update crops - simple swap
+            const newCrops: any = { ...crops };
+            const fromCrop = newCrops[fromIndex];
+            const toCrop = newCrops[toIndex];
+            
+            if (fromCrop) newCrops[toIndex] = fromCrop;
+            else delete newCrops[toIndex];
+            
+            if (toCrop) newCrops[fromIndex] = toCrop;
+            else delete newCrops[fromIndex];
+
+            // Update selected files - simple swap
             const newSelectedFiles = new Set<number>();
-
-            // Create mapping for the swap
-            const indexMapping: { [key: number]: number } = {};
-            for (let i = 0; i < files.length; i++) {
-                if (i === fromIndex) {
-                    indexMapping[i] = toIndex;
-                } else if (fromIndex < toIndex && i > fromIndex && i <= toIndex) {
-                    indexMapping[i] = i - 1;
-                } else if (fromIndex > toIndex && i >= toIndex && i < fromIndex) {
-                    indexMapping[i] = i + 1;
+            selectedFiles.forEach(index => {
+                if (index === fromIndex) {
+                    newSelectedFiles.add(toIndex);
+                } else if (index === toIndex) {
+                    newSelectedFiles.add(fromIndex);
                 } else {
-                    indexMapping[i] = i;
-                }
-            }
-
-            // Apply mapping to crops
-            Object.entries(crops).forEach(([oldIndex, cropData]) => {
-                const oldIdx = parseInt(oldIndex);
-                const newIdx = indexMapping[oldIdx];
-                if (newIdx !== undefined && cropData) {
-                    newCrops[newIdx] = cropData;
-                }
-            });
-
-            // Apply mapping to selected files
-            selectedFiles.forEach(oldIdx => {
-                const newIdx = indexMapping[oldIdx];
-                if (newIdx !== undefined) {
-                    newSelectedFiles.add(newIdx);
+                    newSelectedFiles.add(index);
                 }
             });
 
@@ -1508,6 +1500,43 @@ function Main({ appName, aboutText } :any) {
         if (rearrangeMode) {
             // Save arrangement when exiting rearrange mode
             saveCurrentTabState();
+        }
+    };
+
+    // Navigation functions for floating preview
+    const goToNextPreviewImage = () => {
+        const croppedImageKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
+        if (croppedImageKeys.length === 0) return;
+        
+        const currentKeyIndex = croppedImageKeys.indexOf(currentPreviewIndex.toString());
+        const nextIndex = currentKeyIndex < croppedImageKeys.length - 1 ? currentKeyIndex + 1 : 0;
+        const nextImageIndex = parseInt(croppedImageKeys[nextIndex]);
+        
+        setCurrentPreviewIndex(nextImageIndex);
+        
+        // Generate preview for the next image
+        const crop = crops[nextImageIndex];
+        if (crop) {
+            const enhancedImage = generateCroppedImage(crop, nextImageIndex);
+            setPreviewImage(enhancedImage.dataUrl);
+        }
+    };
+
+    const goToPrevPreviewImage = () => {
+        const croppedImageKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
+        if (croppedImageKeys.length === 0) return;
+        
+        const currentKeyIndex = croppedImageKeys.indexOf(currentPreviewIndex.toString());
+        const prevIndex = currentKeyIndex > 0 ? currentKeyIndex - 1 : croppedImageKeys.length - 1;
+        const prevImageIndex = parseInt(croppedImageKeys[prevIndex]);
+        
+        setCurrentPreviewIndex(prevImageIndex);
+        
+        // Generate preview for the previous image
+        const crop = crops[prevImageIndex];
+        if (crop) {
+            const enhancedImage = generateCroppedImage(crop, prevImageIndex);
+            setPreviewImage(enhancedImage.dataUrl);
         }
     };
 
@@ -2191,7 +2220,7 @@ function Main({ appName, aboutText } :any) {
                             document.addEventListener('mouseup', handleMouseUp);
                         }}
                     >
-                        <span>🖼️ Live Preview</span>
+                        <span>🖼️ Live Preview ({currentPreviewIndex + 1}/{Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length})</span>
                         <button 
                             onClick={() => setShowFloatingPreview(false)}
                             style={{
@@ -2215,6 +2244,108 @@ function Main({ appName, aboutText } :any) {
                                 objectFit: 'contain'
                             }}
                         />
+
+                        {/* Navigation Buttons */}
+                        {Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length > 1 && (
+                            <>
+                                {/* Previous Image Button */}
+                                <button
+                                    onClick={goToPrevPreviewImage}
+                                    style={{
+                                        position: 'absolute',
+                                        left: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '45px',
+                                        height: '45px',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        border: '3px solid white',
+                                        borderRadius: '50%',
+                                        color: 'white',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        zIndex: 1000,
+                                        fontWeight: 'bold',
+                                        userSelect: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.15) rotate(-5deg)';
+                                        e.currentTarget.style.background = 'linear-gradient(135deg, #5a6fd8 0%, #6a4c93 100%)';
+                                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.6)';
+                                        e.currentTarget.style.borderColor = '#FFD700';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1) rotate(0deg)';
+                                        e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                                        e.currentTarget.style.borderColor = 'white';
+                                    }}
+                                    onMouseDown={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(0.95)';
+                                    }}
+                                    onMouseUp={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.15) rotate(-5deg)';
+                                    }}
+                                    title="Previous Image"
+                                >
+                                    ◄◄
+                                </button>
+
+                                {/* Next Image Button */}
+                                <button
+                                    onClick={goToNextPreviewImage}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '50px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '45px',
+                                        height: '45px',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        border: '3px solid white',
+                                        borderRadius: '50%',
+                                        color: 'white',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        zIndex: 1000,
+                                        fontWeight: 'bold',
+                                        userSelect: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.15) rotate(5deg)';
+                                        e.currentTarget.style.background = 'linear-gradient(135deg, #5a6fd8 0%, #6a4c93 100%)';
+                                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.6)';
+                                        e.currentTarget.style.borderColor = '#FFD700';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1) rotate(0deg)';
+                                        e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                                        e.currentTarget.style.borderColor = 'white';
+                                    }}
+                                    onMouseDown={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(0.95)';
+                                    }}
+                                    onMouseUp={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.15) rotate(5deg)';
+                                    }}
+                                    title="Next Image"
+                                >
+                                    ►►
+                                </button>
+                            </>
+                        )}
+
                         {/* Resize Handle with Arrow */}
                         <div
                             style={{
