@@ -1,73 +1,118 @@
-import React, {useState, useEffect, useRef} from 'react'
 
-const A2HSButton = () => {
-    const [isAppInstalled, setIsAppInstalled] = useState(false);
-    const promptRef = useRef<any>(null)
+import React, { useEffect, useState } from 'react';
 
-    const isPWAInstalled = async () => {
-        if ("getInstalledRelatedApps" in window.navigator) {
-            console.log("check if pwa is installed")
-            //@ts-ignore
-            const relatedApps = await window.navigator.getInstalledRelatedApps();
-            let installed = false;
-            console.log({relatedApps})
-            relatedApps.forEach((app: any) => {
-                //if your PWA exists in the array it is installed
-                console.log(app.platform, app.url);
-                if (
-                    app.url ===
-                    "https://blurymind.github.io/batch-images-cropper/manifest.json" ||
-                    app.platform === "android" ||
-                    app.platform === "ios"
-                ) {
-                    installed = true;
-                }
-            });
-            const isAsPwa =  window.matchMedia('(display-mode: standalone)').matches
-            setIsAppInstalled(installed || relatedApps.length > 0 || isAsPwa || promptRef?.current == null);
+interface A2HSButtonProps {
+  onInstall?: () => void;
+}
+
+const A2HSButton: React.FC<A2HSButtonProps> = ({ onInstall }) => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [showButton, setShowButton] = useState(false);
+
+  useEffect(() => {
+    // Check if PWA is installed using multiple methods
+    const checkPWAInstalled = async () => {
+      try {
+        // Method 1: Check display mode
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          setIsPWAInstalled(true);
+          return;
         }
+
+        // Method 2: Check if running in PWA mode (iOS)
+        if ((window.navigator as any).standalone === true) {
+          setIsPWAInstalled(true);
+          return;
+        }
+
+        // Method 3: Check getInstalledRelatedApps (with proper error handling)
+        if ('getInstalledRelatedApps' in navigator) {
+          try {
+            const relatedApps = await (navigator as any).getInstalledRelatedApps();
+            if (relatedApps && relatedApps.length > 0) {
+              setIsPWAInstalled(true);
+              return;
+            }
+          } catch (error) {
+            // Silently handle unsupported API
+            console.debug('getInstalledRelatedApps not supported');
+          }
+        }
+
+        setIsPWAInstalled(false);
+      } catch (error) {
+        console.debug('PWA detection failed:', error);
+        setIsPWAInstalled(false);
+      }
     };
 
-    useEffect(() => {
-        const isAppInstalledHandler = () => {
-            console.log('a2hs installed');
-            setIsAppInstalled(true);
-        }
-        const handler = (event: any) => {
-            // event.preventDefault();
-            console.log("prompt set", {event})
-            promptRef.current = event;
-            isPWAInstalled();
-        }
-        window.addEventListener('beforeinstallprompt', handler)
-        window.addEventListener('appinstalled', isAppInstalledHandler);
-        isPWAInstalled();
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handler);
-            window.removeEventListener('appinstalled', isAppInstalledHandler);
-        }
-    }, []);
+    checkPWAInstalled();
 
-    const handleAddToHomeScreenClick = () => {
-        console.log("try to install pwa", { promptRef})
-        //@ts-ignore
-        promptRef?.current?.prompt()
-        //@ts-ignore
-        promptRef?.current?.userChoice.then((choiceResult) => {
-            console.log("USER CHOICE")
-            if (choiceResult.outcome === 'accepted') {
-                console.log('The app was added to the home screen')
-            } else {
-                console.log('The app was not added to the home screen')
-            }
-        })
+    // Listen for beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        setIsPWAInstalled(true);
+        setShowButton(false);
+        onInstall?.();
+      }
+      
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error('Installation failed:', error);
     }
+  };
 
-    return isAppInstalled ?
-        null :
-        <button className="a2hsButton" onClick={handleAddToHomeScreenClick} title="Installing this will allow you to use it offline">
-            📦 Install as a PWA
-        </button>
-}
+  // Don't show button if PWA is already installed
+  if (isPWAInstalled) {
+    return null;
+  }
+
+  // Only show button if install prompt is available
+  if (!showButton || !deferredPrompt) {
+    return null;
+  }
+
+  return (
+    <button 
+      onClick={handleInstall}
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        backgroundColor: '#007bff',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        fontSize: '14px',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        zIndex: 1000
+      }}
+    >
+      Install App
+    </button>
+  );
+};
 
 export default A2HSButton;
