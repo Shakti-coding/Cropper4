@@ -79,7 +79,6 @@ function Main({ appName, aboutText } :any) {
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [holdTimer, setHoldTimer] = useState<any>(null);
     const [croppedImages, setCroppedImages] = useState<any>({});
-    const [currentPage, setCurrentPage] = useState(0);
     const [gridView, setGridView] = useState(true);
     const [currentView, setCurrentView] = useState<'crop' | 'history'>('crop');
     
@@ -92,7 +91,6 @@ function Main({ appName, aboutText } :any) {
     const inputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const globalCropTimeout = useRef<any>(null);
-    const IMAGES_PER_PAGE = 6;
 
     // Cleanup timeouts on unmount
     useEffect(() => {
@@ -906,28 +904,7 @@ function Main({ appName, aboutText } :any) {
                     </div>
 
                     <>
-                        {files.length > 0 && gridView && (
-                            <div style={{display: "flex", justifyContent: "center", alignItems: "center", padding: "10px", gap: "10px", background: "rgba(0,0,0,0.5)"}}>
-                                <button 
-                                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                                    disabled={currentPage === 0}
-                                    className="pagination-button"
-                                >
-                                    ← Previous
-                                </button>
-                                <span style={{color: "white"}}>
-                                    Page {currentPage + 1} of {Math.ceil(files.length / IMAGES_PER_PAGE)} 
-                                    ({Math.min(currentPage * IMAGES_PER_PAGE + IMAGES_PER_PAGE, files.length)} of {files.length} images)
-                                </span>
-                                <button 
-                                    onClick={() => setCurrentPage(Math.min(Math.ceil(files.length / IMAGES_PER_PAGE) - 1, currentPage + 1))}
-                                    disabled={currentPage >= Math.ceil(files.length / IMAGES_PER_PAGE) - 1}
-                                    className="pagination-button"
-                                >
-                                    Next →
-                                </button>
-                            </div>
-                        )}
+                        
 
                         <div style={{
                             display: gridView ? "grid" : "flex", 
@@ -936,8 +913,10 @@ function Main({ appName, aboutText } :any) {
                             gap: "0.5rem", 
                             padding: "0.5rem", 
                             color: "white",
-                            maxWidth: gridView ? "1200px" : "none",
-                            margin: gridView ? "0 auto" : "0"
+                            maxWidth: gridView ? "none" : "none",
+                            margin: gridView ? "0" : "0",
+                            height: gridView ? "calc(100vh - 200px)" : "auto",
+                            overflowY: gridView ? "auto" : "visible"
                         }}>
                             {files.length === 0 && (
                                 <About aboutText={aboutText} appName={appName}>
@@ -953,59 +932,54 @@ function Main({ appName, aboutText } :any) {
                                 </About>
                             )}
                             {files
-                                .slice(
-                                    gridView ? currentPage * IMAGES_PER_PAGE : 0,
-                                    gridView ? (currentPage + 1) * IMAGES_PER_PAGE : files.length
-                                )
-                                .map((file, displayIndex) => {
-                                    const actualIndex = gridView ? currentPage * IMAGES_PER_PAGE + displayIndex : displayIndex;
+                                .map((file, actualIndex) => {
                                     const isSelected = selectedFiles.has(actualIndex);
-                                    return file && (
-                                        <div key={file?.name + actualIndex} 
-                                             style={{
-                                                 position: "relative",
-                                                 border: isSelected ? "3px solid #4CAF50" : "none",
-                                                 borderRadius: "0.5rem"
-                                             }}
-                                             onMouseDown={() => handleMouseDown(actualIndex)}
-                                             onMouseUp={handleMouseUp}
-                                             onMouseLeave={handleMouseUp}
-                                        >
-                                            {isSelected && (
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: "5px",
-                                                    right: "5px",
-                                                    background: "#4CAF50",
-                                                    color: "white",
-                                                    borderRadius: "50%",
-                                                    width: "25px",
-                                                    height: "25px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    zIndex: 100,
-                                                    fontSize: "14px"
-                                                }}>
-                                                    ✓
-                                                </div>
-                                            )}
-                                            <Cropper
-                                                cropSize={cropSize}
-                                                file={file}
-                                                index={actualIndex}
-                                                onSetCropped={onSetCropped}
-                                                onRemoveImage={onRemoveImage}
-                                                crops={crops}
-                                                setCrops={setCrops}
-                                                keepRatio={keepRatio}
-                                                lockMovement={lockMovement}
-                                                centerCrop={centerCrop}
-                                                onGlobalCropChange={onGlobalCropChange}
-                                            />
-                                        </div>
-                                    );
-                                })
+                                return file && (
+                                    <div key={file?.name + actualIndex} 
+                                         style={{
+                                             position: "relative",
+                                             border: isSelected ? "3px solid #4CAF50" : "none",
+                                             borderRadius: "0.5rem"
+                                         }}
+                                         onMouseDown={() => handleMouseDown(actualIndex)}
+                                         onMouseUp={handleMouseUp}
+                                         onMouseLeave={handleMouseUp}
+                                    >
+                                        {isSelected && (
+                                            <div style={{
+                                                position: "absolute",
+                                                top: "5px",
+                                                right: "5px",
+                                                background: "#4CAF50",
+                                                color: "white",
+                                                borderRadius: "50%",
+                                                width: "25px",
+                                                height: "25px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                zIndex: 100,
+                                                fontSize: "14px"
+                                            }}>
+                                                ✓
+                                            </div>
+                                        )}
+                                        <Cropper
+                                            cropSize={cropSize}
+                                            file={file}
+                                            index={actualIndex}
+                                            onSetCropped={onSetCropped}
+                                            onRemoveImage={onRemoveImage}
+                                            crops={crops}
+                                            setCrops={setCrops}
+                                            keepRatio={keepRatio}
+                                            lockMovement={lockMovement}
+                                            centerCrop={centerCrop}
+                                            onGlobalCropChange={onGlobalCropChange}
+                                        />
+                                    </div>
+                                );
+                            })
                             }
                         </div>
 
