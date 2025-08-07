@@ -16,7 +16,9 @@ const A2HSButton = () => {
                 console.log(app.platform, app.url);
                 if (
                     app.url ===
-                    "https://blurymind.github.io/batch-images-cropper/manifest.json"
+                    "https://blurymind.github.io/batch-images-cropper/manifest.json" ||
+                    app.platform === "android" ||
+                    app.platform === "ios"
                 ) {
                     installed = true;
                 }
