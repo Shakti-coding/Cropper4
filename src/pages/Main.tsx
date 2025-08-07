@@ -4,6 +4,9 @@ import "../App.css";
 import Cropper from "../component/Cropper";
 import Select from "../component/Select";
 import About from "../component/About";
+import AdjustmentsPanel from "../component/AdjustmentsPanel";
+import EffectFilters from "../component/EffectFilters";
+import QualityPanel from "../component/QualityPanel";
 
 const cropSizePresets = [
     {name: "Custom", value: null},
@@ -88,6 +91,30 @@ function Main({ appName, aboutText } :any) {
     const [editingTabId, setEditingTabId] = useState<string | null>(null);
     const [editingTabName, setEditingTabName] = useState<string>('');
     
+    // Quality panel states
+    const [showQualityPanel, setShowQualityPanel] = useState<boolean>(false);
+    const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
+    const [showEffects, setShowEffects] = useState<boolean>(false);
+    const [darkMode, setDarkMode] = useState<boolean>(false);
+    const [selectedFilter, setSelectedFilter] = useState<any>(null);
+    const [adjustmentValues, setAdjustmentValues] = useState<any>(null);
+    const [showComparison, setShowComparison] = useState<boolean>(false);
+    const [watermarkText, setWatermarkText] = useState<string>('WATERMARK');
+    const [borderWidth, setBorderWidth] = useState<number>(10);
+    const [borderColor, setBorderColor] = useState<string>('#000000');
+    const [showPreviewPopup, setShowPreviewPopup] = useState<boolean>(false);
+    const [previewImage, setPreviewImage] = useState<string>('');
+    const [qualityPreviewImage, setQualityPreviewImage] = useState<string>('');
+    const [originalCroppedImages, setOriginalCroppedImages] = useState<any>({});
+    const [showFloatingPreview, setShowFloatingPreview] = useState<boolean>(false);
+    const [previewSize, setPreviewSize] = useState({ width: 300, height: 200 });
+    const [previewPosition, setPreviewPosition] = useState({ x: 50, y: 50 });
+    const [isResizing, setIsResizing] = useState<boolean>(false);
+    const [signatureText, setSignatureText] = useState<string>('');
+    const [enableWatermark, setEnableWatermark] = useState<boolean>(false);
+    const [enableBorder, setEnableBorder] = useState<boolean>(false);
+    const [enableSignature, setEnableSignature] = useState<boolean>(false);
+
     const inputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const globalCropTimeout = useRef<any>(null);
@@ -103,7 +130,7 @@ function Main({ appName, aboutText } :any) {
 
     // Update active tab when switching
     useEffect(() => {
-        const tab = tabs.find(t => t.id === activeTabId);
+        const tab = tabs.find(t => t.id === activeTabId) || tabs[0];
         if (tab) {
             setFiles(tab.files);
             setCrops(tab.crops);
@@ -211,8 +238,21 @@ function Main({ appName, aboutText } :any) {
         // Filter only image files
         const imageFiles = allFiles.filter((file: File) => file.type.startsWith('image/'));
         if (imageFiles.length === 0) return;
-        console.log("set new files", { input, files, newFiles: imageFiles });
-        setFiles(prev => imageFiles.length > 0 ? ([...prev, ...imageFiles]) : imageFiles);
+        
+        // Remove duplicates based on file name and size
+        const uniqueFiles = imageFiles.filter((newFile: File) => {
+            return !files.some((existingFile: File) => 
+                existingFile.name === newFile.name && 
+                existingFile.size === newFile.size &&
+                existingFile.lastModified === newFile.lastModified
+            );
+        });
+        
+        console.log("set new files", { input, files, newFiles: uniqueFiles, filtered: imageFiles.length - uniqueFiles.length });
+        
+        if (uniqueFiles.length > 0) {
+            setFiles(prev => [...prev, ...uniqueFiles]);
+        }
     };
 
     const onRemoveImage = (index: number) => {
@@ -330,6 +370,434 @@ function Main({ appName, aboutText } :any) {
         }
     }, [centerCrop]);
 
+    // Quality panel functions
+    const applyImageTransformations = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+        // Apply filter effects
+        if (selectedFilter) {
+            ctx.filter = selectedFilter.cssFilter;
+        }
+
+        // Apply adjustments if available
+        if (adjustmentValues) {
+            const filters = [];
+
+            if (adjustmentValues.brightness !== 0) {
+                filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
+            }
+            if (adjustmentValues.contrast !== 0) {
+                filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
+            }
+            if (adjustmentValues.saturation !== 0) {
+                filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
+            }
+            if (adjustmentValues.hue !== 0) {
+                filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
+            }
+            if (adjustmentValues.blur !== 0) {
+                filters.push(`blur(${adjustmentValues.blur}px)`);
+            }
+            if (adjustmentValues.sharpen !== 0) {
+                filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
+            }
+
+            if (filters.length > 0) {
+                ctx.filter = (ctx.filter === 'none' ? '' : ctx.filter + ' ') + filters.join(' ');
+            }
+        }
+    };
+
+    const addWatermark = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+        if (!enableWatermark || !watermarkText?.trim()) return;
+        
+        const fontSize = Math.max(canvas.width / 20, 16);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+
+        const textWidth = ctx.measureText(watermarkText).width;
+        const x = canvas.width - textWidth - 20;
+        const y = canvas.height - 20;
+
+        ctx.strokeText(watermarkText, x, y);
+        ctx.fillText(watermarkText, x, y);
+    };
+
+    const addBorder = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+        if (!enableBorder || borderWidth <= 0) return;
+        
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = borderWidth;
+        ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
+    };
+
+    const addSignature = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+        if (!enableSignature || !signatureText?.trim()) return;
+        
+        const fontSize = Math.max(canvas.width / 25, 12);
+        ctx.font = `${fontSize}px cursive`;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 1;
+
+        const textWidth = ctx.measureText(signatureText).width;
+        const x = 20;
+        const y = canvas.height - 20;
+
+        ctx.strokeText(signatureText, x, y);
+        ctx.fillText(signatureText, x, y);
+    };
+
+    const handleAddWatermark = () => {
+        const text = prompt('Enter watermark text:', watermarkText);
+        if (text !== null) {
+            setWatermarkText(text);
+        }
+    };
+
+    const handleAddBorder = () => {
+        const width = prompt('Enter border width (pixels):', borderWidth.toString());
+        const color = prompt('Enter border color (hex):', borderColor);
+        if (width !== null && !isNaN(parseInt(width))) {
+            setBorderWidth(parseInt(width));
+        }
+        if (color !== null) {
+            setBorderColor(color);
+        }
+    };
+
+    const handleAddSignature = () => {
+        const text = prompt('Enter signature text:', signatureText);
+        if (text !== null) {
+            setSignatureText(text);
+        }
+    };
+
+    const handleShowPreview = () => {
+        if (files.length > 0) {
+            // Generate a preview with the first image
+            const firstImageFile = files[0];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Apply current effects
+                let filterString = '';
+                if (selectedFilter) {
+                    filterString += selectedFilter.cssFilter;
+                }
+                if (adjustmentValues) {
+                    const filters = [];
+                    if (adjustmentValues.brightness !== 0) {
+                        filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
+                    }
+                    if (adjustmentValues.contrast !== 0) {
+                        filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
+                    }
+                    if (adjustmentValues.saturation !== 0) {
+                        filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
+                    }
+                    if (adjustmentValues.hue !== 0) {
+                        filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
+                    }
+                    if (adjustmentValues.blur !== 0) {
+                        filters.push(`blur(${adjustmentValues.blur}px)`);
+                    }
+                    if (adjustmentValues.sharpen !== 0) {
+                        filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
+                    }
+                    filterString += (filterString ? ' ' : '') + filters.join(' ');
+                }
+
+                ctx.filter = filterString || 'none';
+                ctx.drawImage(img, 0, 0);
+
+                // Reset filter for overlays
+                ctx.filter = 'none';
+
+                // Add watermark
+                addWatermark(canvas, ctx);
+
+                // Add border
+                addBorder(canvas, ctx);
+
+                // Add signature
+                addSignature(canvas, ctx);
+
+                setPreviewImage(canvas.toDataURL());
+                setShowPreviewPopup(true);
+            };
+            img.src = URL.createObjectURL(firstImageFile);
+        } else {
+            alert('Please add some images first to preview effects!');
+        }
+    };
+
+    const generateQualityPreview = () => {
+        // Use the first cropped image if available, otherwise create a sample
+        const firstCropKey = Object.keys(crops)[0];
+
+        if (firstCropKey && crops[firstCropKey]) {
+            // Generate cropped image for preview
+            const crop = crops[firstCropKey];
+            const croppedImage = generateCroppedImage(crop, parseInt(firstCropKey));
+            setQualityPreviewImage(croppedImage.dataUrl);
+        } else if (files.length > 0) {
+            // Fallback to original image if no crops exist yet
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = Math.min(img.width, 400);
+                    canvas.height = Math.min(img.height, 300);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    setQualityPreviewImage(canvas.toDataURL());
+                };
+                img.src = URL.createObjectURL(files[0]);
+            }
+        } else {
+            // Create sample image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                canvas.width = 400;
+                canvas.height = 300;
+
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#ff7b7b');
+                gradient.addColorStop(0.5, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Sample Image', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillText('Quality Tools Preview', canvas.width / 2, canvas.height / 2 + 20);
+
+                setQualityPreviewImage(canvas.toDataURL());
+            }
+        }
+    };
+
+    const applyQualityEffectsToPreview = () => {
+        if (!qualityPreviewImage) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const img = new Image();
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            // Apply current effects
+            let filterString = '';
+            if (selectedFilter) {
+                filterString += selectedFilter.cssFilter;
+            }
+            if (adjustmentValues) {
+                const filters = [];
+                if (adjustmentValues.brightness !== 0) {
+                    filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
+                }
+                if (adjustmentValues.contrast !== 0) {
+                    filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
+                }
+                if (adjustmentValues.saturation !== 0) {
+                    filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
+                }
+                if (adjustmentValues.hue !== 0) {
+                    filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
+                }
+                if (adjustmentValues.blur !== 0) {
+                    filters.push(`blur(${adjustmentValues.blur}px)`);
+                }
+                if (adjustmentValues.sharpen !== 0) {
+                    filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
+                }
+                filterString += (filterString ? ' ' : '') + filters.join(' ');
+            }
+
+            ctx.filter = filterString || 'none';
+            ctx.drawImage(img, 0, 0);
+
+            // Reset filter for overlays
+            ctx.filter = 'none';
+
+            // Add watermark
+            addWatermark(canvas, ctx);
+
+            // Add border
+            addBorder(canvas, ctx);
+
+            // Add signature
+            addSignature(canvas, ctx);
+
+            setPreviewImage(canvas.toDataURL());
+        };
+        img.src = qualityPreviewImage;
+    };
+
+    // Apply effects automatically when quality settings change
+    useEffect(() => {
+        if (qualityPreviewImage) {
+            applyQualityEffectsToPreview();
+        }
+    }, [selectedFilter, adjustmentValues, watermarkText, borderWidth, borderColor, signatureText, enableWatermark, enableBorder, enableSignature, qualityPreviewImage]);
+
+    const handleSaveAdjustments = () => {
+        // Save original cropped images for undo functionality
+        setOriginalCroppedImages({ ...croppedImages });
+
+        const adjustmentData = {
+            selectedFilter,
+            adjustmentValues,
+            watermarkText,
+            borderWidth,
+            borderColor,
+            signatureText,
+            enableWatermark,
+            enableBorder,
+            enableSignature,
+            timestamp: Date.now()
+        };
+
+        localStorage.setItem('qualityToolsSettings', JSON.stringify(adjustmentData));
+
+        // Apply effects to all cropped images immediately
+        Object.keys(crops).forEach((key) => {
+            const crop = crops[parseInt(key)];
+            if (crop) {
+                const enhancedImage = generateCroppedImage(crop, parseInt(key));
+                setCroppedImages((prev: any) => ({
+                    ...prev,
+                    [key]: enhancedImage.dataUrl
+                }));
+            }
+        });
+
+        alert('Quality effects applied to all cropped images! Use Undo to revert changes.');
+    };
+
+    const handleUndoAdjustments = () => {
+        if (Object.keys(originalCroppedImages).length > 0) {
+            setCroppedImages(originalCroppedImages);
+            setOriginalCroppedImages({});
+            setSelectedFilter(null);
+            setAdjustmentValues(null);
+            setWatermarkText('WATERMARK');
+            setBorderWidth(10);
+            setBorderColor('#000000');
+            setSignatureText('');
+            setEnableWatermark(false);
+            setEnableBorder(false);
+            setEnableSignature(false);
+            alert('Changes reverted to original cropped images!');
+        } else {
+            alert('No previous version to undo to!');
+        }
+    };
+
+    const loadSavedAdjustments = () => {
+        const saved = localStorage.getItem('qualityToolsSettings');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                setSelectedFilter(data.selectedFilter);
+                setAdjustmentValues(data.adjustmentValues);
+                setWatermarkText(data.watermarkText || 'WATERMARK');
+                setBorderWidth(data.borderWidth || 10);
+                setBorderColor(data.borderColor || '#000000');
+                setSignatureText(data.signatureText || '');
+                setEnableWatermark(data.enableWatermark || false);
+                setEnableBorder(data.enableBorder || false);
+                setEnableSignature(data.enableSignature || false);
+                alert('Quality tool settings loaded!');
+            } catch (error) {
+                console.error('Error loading saved settings:', error);
+            }
+        }
+    };
+
+    const handleSharePDF = async () => {
+        try {
+            const { jsPDF } = await import('jspdf');
+            const indicesToShare = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
+
+            if (indicesToShare.length === 0) {
+                alert('Please crop some images first before sharing!');
+                return;
+            }
+
+            const pdf = new jsPDF();
+            let isFirstPage = true;
+
+            for (let i = 0; i < indicesToShare.length; i++) {
+                const index = indicesToShare[i];
+                const crop = crops[index];
+                if (!crop) continue;
+
+                if (!isFirstPage) {
+                    pdf.addPage();
+                }
+                isFirstPage = false;
+
+                // Generate image with all quality effects applied
+                const enhancedImage = generateCroppedImage(crop, index);
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+
+                const imgAspectRatio = enhancedImage.canvas.width / enhancedImage.canvas.height;
+                const pageAspectRatio = pageWidth / pageHeight;
+
+                let imgWidth, imgHeight;
+                if (imgAspectRatio > pageAspectRatio) {
+                    imgWidth = pageWidth - 20;
+                    imgHeight = imgWidth / imgAspectRatio;
+                } else {
+                    imgHeight = pageHeight - 20;
+                    imgWidth = imgHeight * imgAspectRatio;
+                }
+
+                const x = (pageWidth - imgWidth) / 2;
+                const y = (pageHeight - imgHeight) / 2;
+
+                pdf.addImage(enhancedImage.dataUrl, 'JPEG', x, y, imgWidth, imgHeight);
+            }
+
+            const pdfBlob = pdf.output('blob');
+
+            if (navigator.share && navigator.canShare({ files: [new File([pdfBlob], 'enhanced-cropped-images.pdf', { type: 'application/pdf' })] })) {
+                await navigator.share({
+                    title: 'Enhanced Cropped Images',
+                    text: 'Check out these enhanced cropped images!',
+                    files: [new File([pdfBlob], 'enhanced-cropped-images.pdf', { type: 'application/pdf' })]
+                });
+            } else {
+                // Fallback: create download link
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'enhanced-cropped-images.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Error sharing PDF:', error);
+            alert('Error creating PDF. Please try again.');
+        }
+    };
+
     const generateCroppedImage = (crop: any, index: number) => {
         const resizeImageToCrop = resizeOnExport && cropSize != null && cropSize.width === cropSize.height ? cropSize : crop;
         const image = crop?.image;
@@ -349,6 +817,9 @@ function Main({ appName, aboutText } :any) {
 
         ctx.scale(pixelRatio, pixelRatio);
 
+        // Apply transformations before drawing
+        applyImageTransformations(canvas, ctx);
+
         ctx.drawImage(
             image,
             crop.x * scaleX,
@@ -360,6 +831,24 @@ function Main({ appName, aboutText } :any) {
             resizeImageToCrop.width,
             resizeImageToCrop.height
         );
+
+        // Reset filter for overlays
+        ctx.filter = 'none';
+
+        // Add watermark if enabled
+        if (enableWatermark && watermarkText && watermarkText.trim()) {
+            addWatermark(canvas, ctx);
+        }
+
+        // Add border if enabled
+        if (enableBorder && borderWidth > 0) {
+            addBorder(canvas, ctx);
+        }
+
+        // Add signature if enabled
+        if (enableSignature && signatureText && signatureText.trim()) {
+            addSignature(canvas, ctx);
+        }
 
         return {
             canvas,
@@ -912,34 +1401,229 @@ function Main({ appName, aboutText } :any) {
                         </div>
                         {files.length > 0 && (
                             <div style={{display: "flex", justifyContent: "space-between", gap: 4, height: "fit-content", alignItems: "center", flexWrap: "wrap"}} className="exporter-settings">
-                                <div style={{display: "flex", gap: 4, alignItems: "center"}}>
+                                <div style={{display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap"}}>
                                     <button onClick={onSetAllToCrop}>Set all to</button>
                                     <Select selectItems={cropSizePresets} selectId="crop-presets" onSelect={setCropSize}/>
                                     <div onClick={()=> setKeepRatio((prev:boolean) => !prev)} className="checkbox">
-                                        <input type="checkbox" checked={keepRatio}/>
+                                        <input type="checkbox" checked={keepRatio} readOnly />
                                         <div className="box-bg">Keep ratio</div>
                                     </div>
                                     <div onClick={()=> setLockMovement((prev:boolean) => !prev)} className="checkbox" title="Sync crop changes across all images">
-                                        <input type="checkbox" checked={lockMovement}/>
+                                        <input type="checkbox" checked={lockMovement} readOnly />
                                         <div className="box-bg">🔒 Lock Movement</div>
                                     </div>
                                     <div onClick={()=> setCenterCrop((prev:boolean) => !prev)} className="checkbox" title="Center crop on all images">
-                                        <input type="checkbox" checked={centerCrop}/>
+                                        <input type="checkbox" checked={centerCrop} readOnly />
                                         <div className="box-bg">🎯 Center Crop</div>
                                     </div>
+                                    <button 
+                                        className={`quality-toggle-btn ${showQualityPanel ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setShowQualityPanel(!showQualityPanel);
+                                            if (!showQualityPanel) {
+                                                // Auto-generate preview when opening quality tools
+                                                generateQualityPreview();
+                                            }
+                                        }}
+                                        title="Open Quality Tools"
+                                        style={{
+                                            background: showQualityPanel ? "#007bff" : "#333",
+                                            color: "white",
+                                            border: "none",
+                                            padding: "5px 10px",
+                                            borderRadius: "3px",
+                                            cursor: "pointer",
+                                            fontSize: "12px"
+                                        }}
+                                    >
+                                        🎛️ Quality Tools
+                                    </button>
+                                </div>
+
+                                {showQualityPanel && (
+                                    <div className="quality-tools-container" style={{
+                                        position: "fixed",
+                                        top: "100px",
+                                        right: "10px",
+                                        width: "300px",
+                                        maxHeight: "70vh",
+                                        overflowY: "auto",
+                                        background: "white",
+                                        border: "2px solid #007bff",
+                                        borderRadius: "10px",
+                                        zIndex: 1000,
+                                        boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
+                                    }}>
+                                        <QualityPanel
+                                            showAdjustments={showAdjustments}
+                                            onToggleAdjustments={() => setShowAdjustments(!showAdjustments)}
+                                            showEffects={showEffects}
+                                            onToggleEffects={() => setShowEffects(!showEffects)}
+                                            onSharePDF={handleSharePDF}
+                                            darkMode={darkMode}
+                                            onToggleDarkMode={() => setDarkMode(!darkMode)}
+                                            onAddWatermark={handleAddWatermark}
+                                            onAddBorder={handleAddBorder}
+                                            onAddSignature={handleAddSignature}
+                                            onShowPreview={handleShowPreview}
+                                            onSaveAdjustments={handleSaveAdjustments}
+                                            enableWatermark={enableWatermark}
+                                            onToggleWatermark={() => setEnableWatermark(!enableWatermark)}
+                                            enableBorder={enableBorder}
+                                            onToggleBorder={() => setEnableBorder(!enableBorder)}
+                                            enableSignature={enableSignature}
+                                            onToggleSignature={() => setEnableSignature(!enableSignature)}
+                                        />
+
+                                        {/* Live Preview Panel */}
+                                        <div className="quality-preview-panel" style={{
+                                            padding: "15px",
+                                            borderTop: "1px solid #ddd"
+                                        }}>
+                                            <div className="quality-header" style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                marginBottom: "10px"
+                                            }}>
+                                                <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Preview</h3>
+                                                <div style={{ display: 'flex', gap: '5px' }}>
+                                                    <button 
+                                                        onClick={() => setShowFloatingPreview(!showFloatingPreview)}
+                                                        style={{
+                                                            background: "#007bff",
+                                                            color: "white",
+                                                            border: "none",
+                                                            padding: "5px 10px",
+                                                            borderRadius: "3px",
+                                                            cursor: "pointer",
+                                                            fontSize: "10px"
+                                                        }}
+                                                    >
+                                                        {showFloatingPreview ? '📌 Dock' : '🔄 Float'}
+                                                    </button>
+                                                    <button 
+                                                        onClick={generateQualityPreview}
+                                                        style={{
+                                                            background: "#4CAF50",
+                                                            color: "white",
+                                                            border: "none",
+                                                            padding: "5px 10px",
+                                                            borderRadius: "3px",
+                                                            cursor: "pointer",
+                                                            fontSize: "10px"
+                                                        }}
+                                                    >
+                                                        🔄 Refresh
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="preview-content">
+                                                {Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length === 0 ? (
+                                                    <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
+                                                        <p>⚠️ First crop some images</p>
+                                                        <p>to see preview here</p>
+                                                    </div>
+                                                ) : previewImage ? (
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ 
+                                                            position: 'relative', 
+                                                            display: 'inline-block',
+                                                            width: '100%',
+                                                            height: '150px',
+                                                            border: '1px solid #ddd',
+                                                            borderRadius: '5px',
+                                                            overflow: 'hidden'
+                                                        }}>
+                                                            <img 
+                                                                src={previewImage} 
+                                                                alt="Preview"
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'contain'
+                                                                }}
+                                                                draggable={false}
+                                                            />
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '3px', flexDirection: 'column', marginTop: '8px' }}>
+                                                            <button 
+                                                                onClick={handleSaveAdjustments}
+                                                                style={{ 
+                                                                    background: "#4CAF50",
+                                                                    color: "white",
+                                                                    border: "none",
+                                                                    padding: "5px",
+                                                                    borderRadius: "3px",
+                                                                    cursor: "pointer",
+                                                                    fontSize: "11px"
+                                                                }}
+                                                            >
+                                                                💾 Apply to All
+                                                            </button>
+                                                            {Object.keys(originalCroppedImages).length > 0 && (
+                                                                <button 
+                                                                    onClick={handleUndoAdjustments}
+                                                                    style={{ 
+                                                                        background: '#f44336', 
+                                                                        color: 'white',
+                                                                        border: "none",
+                                                                        padding: "5px",
+                                                                        borderRadius: "3px",
+                                                                        cursor: "pointer",
+                                                                        fontSize: '11px'
+                                                                    }}
+                                                                >
+                                                                    ↺ Undo
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ textAlign: 'center', padding: '15px', color: '#666', fontSize: '12px' }}>
+                                                        <p>🔄 Generating preview...</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {showAdjustments && (
+                                            <div style={{ borderTop: "1px solid #ddd" }}>
+                                                <AdjustmentsPanel
+                                                    onAdjustmentChange={setAdjustmentValues}
+                                                    onReset={() => setAdjustmentValues(null)}
+                                                    showComparison={showComparison}
+                                                    onToggleComparison={() => setShowComparison(!showComparison)}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {showEffects && (
+                                            <div style={{ borderTop: "1px solid #ddd" }}>
+                                                <EffectFilters
+                                                    onFilterSelect={setSelectedFilter}
+                                                    selectedFilter={selectedFilter}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div style={{display: "flex", gap: 4, alignItems: "center"}}>
                                     <div onClick={()=> setEnableOCR((prev:boolean) => !prev)} className="checkbox" title="Enable OCR for PDF searchable text">
-                                        <input type="checkbox" checked={enableOCR}/>
+                                        <input type="checkbox" checked={enableOCR} readOnly />
                                         <div className="box-bg">🔍 Enable OCR</div>
                                     </div>
                                     <div onClick={()=> setGridView((prev:boolean) => !prev)} className="checkbox" title="Toggle between grid and single view">
-                                        <input type="checkbox" checked={gridView}/>
+                                        <input type="checkbox" checked={gridView} readOnly />
                                         <div className="box-bg">📱 Grid View</div>
                                     </div>
                                 </div>
+
                                 <div style={{display: "flex", gap: 4, alignItems: "center"}}>
                                     {cropSize && keepRatio && (
                                         <div onClick={()=> setResizeOnExport((prev:boolean) => !prev)} className="checkbox" title="This will resize the exported images when on">
-                                            <input type="checkbox" checked={resizeOnExport}/>
+                                            <input type="checkbox" checked={resizeOnExport} readOnly />
                                             <div className="box-bg">Resize to {cropSize.width}x{cropSize.height}</div>
                                         </div>
                                     )}
@@ -957,9 +1641,7 @@ function Main({ appName, aboutText } :any) {
                         )}
                     </div>
 
-                    <>
-                        
-
+                    <div>
                         <div style={{
                             display: gridView ? "grid" : "flex", 
                             gridTemplateColumns: gridView ? "repeat(auto-fit, minmax(300px, 1fr))" : "none",
@@ -982,7 +1664,7 @@ function Main({ appName, aboutText } :any) {
                                             className="select-some-files"
                                             style={{fontSize: "1.2em", margin: "10px 0"}}
                                         >📁 Or select a folder with images</h2>
-                                        
+
                                         <div style={{
                                             background: "rgba(0,0,0,0.7)", 
                                             padding: "15px", 
@@ -1055,13 +1737,237 @@ function Main({ appName, aboutText } :any) {
                             })
                             }
                         </div>
-
-                        {Object.values(croppedImages).map(
-                            (croppedImage) =>
-                                croppedImage && <img src={croppedImage as any} alt="uploaded"></img>
-                        )}
-                    </>
+                    </div>
                 </>
+            )}
+
+            {/* Floating Preview Window */}
+            {showFloatingPreview && previewImage && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        left: `${previewPosition.x}px`,
+                        top: `${previewPosition.y}px`,
+                        width: `${previewSize.width}px`,
+                        height: `${previewSize.height}px`,
+                        background: 'white',
+                        border: '2px solid #007bff',
+                        borderRadius: '10px',
+                        zIndex: 10000,
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        minWidth: '200px',
+                        minHeight: '150px'
+                    }}
+                >
+                    <div 
+                        style={{
+                            background: '#007bff',
+                            color: 'white',
+                            padding: '5px 10px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'move',
+                            fontSize: '12px'
+                        }}
+                        onMouseDown={(e) => {
+                            if (isResizing) return;
+                            const startX = e.clientX - previewPosition.x;
+                            const startY = e.clientY - previewPosition.y;
+
+                            const handleMouseMove = (e: MouseEvent) => {
+                                setPreviewPosition({
+                                    x: e.clientX - startX,
+                                    y: e.clientY - startY
+                                });
+                            };
+
+                            const handleMouseUp = () => {
+                                document.removeEventListener('mousemove', handleMouseMove);
+                                document.removeEventListener('mouseup', handleMouseUp);
+                            };
+
+                            document.addEventListener('mousemove', handleMouseMove);
+                            document.addEventListener('mouseup', handleMouseUp);
+                        }}
+                    >
+                        <span>🖼️ Live Preview</span>
+                        <button 
+                            onClick={() => setShowFloatingPreview(false)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div style={{ padding: '10px', height: 'calc(100% - 40px)', overflow: 'hidden', position: 'relative' }}>
+                        <img 
+                            src={previewImage} 
+                            alt="Floating preview"
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
+                        {/* Resize Handle with Arrow */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                bottom: '5px',
+                                right: '5px',
+                                width: '30px',
+                                height: '30px',
+                                background: 'rgba(0, 123, 255, 0.9)',
+                                cursor: 'nw-resize',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '16px',
+                                border: '2px solid white',
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                                transition: 'all 0.2s ease',
+                                userSelect: 'none'
+                            }}
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setIsResizing(true);
+                                const startX = e.clientX;
+                                const startY = e.clientY;
+                                const startWidth = previewSize.width;
+                                const startHeight = previewSize.height;
+
+                                const handleMouseMove = (e: MouseEvent) => {
+                                    const deltaX = e.clientX - startX;
+                                    const deltaY = e.clientY - startY;
+                                    const newWidth = Math.max(200, startWidth + deltaX);
+                                    const newHeight = Math.max(150, startHeight + deltaY);
+                                    setPreviewSize({ width: newWidth, height: newHeight });
+                                };
+
+                                const handleMouseUp = () => {
+                                    setIsResizing(false);
+                                    document.removeEventListener('mousemove', handleMouseMove);
+                                    document.removeEventListener('mouseup', handleMouseUp);
+                                };
+
+                                document.addEventListener('mousemove', handleMouseMove);
+                                document.addEventListener('mouseup', handleMouseUp);
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.1)';
+                                e.currentTarget.style.background = 'rgba(0, 123, 255, 1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.background = 'rgba(0, 123, 255, 0.9)';
+                            }}
+                            title="Drag to resize preview window"
+                        >
+                            ⤡
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Preview Popup Modal */}
+            {showPreviewPopup && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000
+                }}>
+                    <div style={{
+                        background: 'white',
+                        padding: '20px',
+                        borderRadius: '10px',
+                        maxWidth: '90%',
+                        maxHeight: '90%',
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                    }}>
+                        <button 
+                            onClick={() => setShowPreviewPopup(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '10px',
+                                right: '10px',
+                                background: '#ff4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '30px',
+                                height: '30px',
+                                cursor: 'pointer',
+                                fontSize: '16px'
+                            }}
+                        >
+                            ✕
+                        </button>
+                        <h3 style={{ color: 'black', marginBottom: '15px' }}>Quality Tools Preview</h3>
+                        <img 
+                            src={previewImage} 
+                            alt="Preview with effects" 
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '70vh',
+                                objectFit: 'contain',
+                                border: '1px solid #ddd',
+                                borderRadius: '5px'
+                            }}
+                        />
+                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={loadSavedAdjustments}
+                                style={{
+                                    background: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Load Saved Settings
+                            </button>
+                            <button 
+                                onClick={() => setShowPreviewPopup(false)}
+                                style={{
+                                    background: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {Object.values(croppedImages).map(
+                (croppedImage) =>
+                    croppedImage && <img key={croppedImage as any} src={croppedImage as any} alt="uploaded" style={{display: "none"}}></img>
             )}
         </div>
     );
