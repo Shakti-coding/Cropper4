@@ -2155,8 +2155,8 @@ function Main({ appName, aboutText } :any) {
                         zIndex: 10000,
                         overflow: 'hidden',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                        minWidth: '200px',
-                        minHeight: '150px'
+                        minWidth: '250px',
+                        minHeight: '200px'
                     }}
                 >
                     <div 
@@ -2205,7 +2205,123 @@ function Main({ appName, aboutText } :any) {
                             ✕
                         </button>
                     </div>
-                    <div style={{ padding: '10px', height: 'calc(100% - 40px)', overflow: 'hidden', position: 'relative' }}>
+
+                    {/* Navigation buttons */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '5px',
+                        background: 'rgba(0, 123, 255, 0.1)',
+                        gap: '10px'
+                    }}>
+                        <button
+                            onClick={() => {
+                                const croppedKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
+                                if (croppedKeys.length > 0) {
+                                    const currentIndex = croppedKeys.findIndex(key => {
+                                        const crop = crops[key];
+                                        const currentImage = generateCroppedImage(crop, parseInt(key));
+                                        return currentImage.dataUrl === previewImage;
+                                    });
+                                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : croppedKeys.length - 1;
+                                    const prevKey = croppedKeys[prevIndex];
+                                    const prevCrop = crops[prevKey];
+                                    if (prevCrop) {
+                                        const prevImage = generateCroppedImage(prevCrop, parseInt(prevKey));
+                                        setPreviewImage(prevImage.dataUrl);
+                                    }
+                                }
+                            }}
+                            style={{
+                                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                                border: 'none',
+                                color: 'white',
+                                padding: '8px 12px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                            }}
+                            title="Previous Image"
+                        >
+                            <<<<<<
+                        </button>
+
+                        <span style={{
+                            fontSize: '12px',
+                            color: '#007bff',
+                            fontWeight: 'bold'
+                        }}>
+                            {(() => {
+                                const croppedKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
+                                if (croppedKeys.length > 0) {
+                                    const currentIndex = croppedKeys.findIndex(key => {
+                                        const crop = crops[key];
+                                        const currentImage = generateCroppedImage(crop, parseInt(key));
+                                        return currentImage.dataUrl === previewImage;
+                                    });
+                                    return `${currentIndex + 1}/${croppedKeys.length}`;
+                                }
+                                return '1/1';
+                            })()}
+                        </span>
+
+                        <button
+                            onClick={() => {
+                                const croppedKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
+                                if (croppedKeys.length > 0) {
+                                    const currentIndex = croppedKeys.findIndex(key => {
+                                        const crop = crops[key];
+                                        const currentImage = generateCroppedImage(crop, parseInt(key));
+                                        return currentImage.dataUrl === previewImage;
+                                    });
+                                    const nextIndex = currentIndex < croppedKeys.length - 1 ? currentIndex + 1 : 0;
+                                    const nextKey = croppedKeys[nextIndex];
+                                    const nextCrop = crops[nextKey];
+                                    if (nextCrop) {
+                                        const nextImage = generateCroppedImage(nextCrop, parseInt(nextKey));
+                                        setPreviewImage(nextImage.dataUrl);
+                                    }
+                                }
+                            }}
+                            style={{
+                                background: 'linear-gradient(135deg, #FF5722, #E64A19)',
+                                border: 'none',
+                                color: 'white',
+                                padding: '8px 12px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                            }}
+                            title="Next Image"
+                        >
+                            >>>>>>
+                        </button>
+                    </div>
+
+                    <div style={{ padding: '10px', height: 'calc(100% - 90px)', overflow: 'hidden', position: 'relative' }}>
                         <img 
                             src={previewImage} 
                             alt="Floating preview"
@@ -2247,8 +2363,8 @@ function Main({ appName, aboutText } :any) {
                                 const handleMouseMove = (e: MouseEvent) => {
                                     const deltaX = e.clientX - startX;
                                     const deltaY = e.clientY - startY;
-                                    const newWidth = Math.max(200, startWidth + deltaX);
-                                    const newHeight = Math.max(150, startHeight + deltaY);
+                                    const newWidth = Math.max(250, startWidth + deltaX);
+                                    const newHeight = Math.max(200, startHeight + deltaY);
                                     setPreviewSize({ width: newWidth, height: newHeight });
                                 };
 
