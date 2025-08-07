@@ -1417,73 +1417,72 @@ function Main({ appName, aboutText } :any) {
         return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const handleDragStart = (e: React.DragEvent, index: number) => {
-        if (!rearrangeMode) return;
-        setDraggedIndex(index);
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', index.toString());
+    // Arrow-based movement functions
+    const moveImage = (fromIndex: number, direction: 'up' | 'down' | 'left' | 'right') => {
+        if (!rearrangeMode || files.length < 2) return;
         
-        // Add visual feedback
-        const target = e.target as HTMLElement;
-        target.style.opacity = '0.5';
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        if (!rearrangeMode) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDragEnter = (e: React.DragEvent) => {
-        if (!rearrangeMode) return;
-        e.preventDefault();
-        const target = e.currentTarget as HTMLElement;
-        target.style.backgroundColor = 'rgba(33, 150, 243, 0.2)';
-        target.style.borderColor = '#2196F3';
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        if (!rearrangeMode) return;
-        const target = e.currentTarget as HTMLElement;
-        target.style.backgroundColor = 'transparent';
-        target.style.borderColor = '#888';
-    };
-
-    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-        if (!rearrangeMode || draggedIndex === null) return;
-        e.preventDefault();
+        let toIndex = fromIndex;
         
-        // Reset visual feedback
-        const target = e.currentTarget as HTMLElement;
-        target.style.backgroundColor = 'transparent';
-        target.style.borderColor = '#888';
+        if (gridView) {
+            // For grid view, calculate columns based on container width
+            const containerWidth = window.innerWidth - 32; // Account for padding
+            const itemWidth = 300 + 8; // Min width + gap
+            const columns = Math.floor(containerWidth / itemWidth) || 1;
+            
+            switch (direction) {
+                case 'up':
+                    toIndex = Math.max(0, fromIndex - columns);
+                    break;
+                case 'down':
+                    toIndex = Math.min(files.length - 1, fromIndex + columns);
+                    break;
+                case 'left':
+                    toIndex = Math.max(0, fromIndex - 1);
+                    break;
+                case 'right':
+                    toIndex = Math.min(files.length - 1, fromIndex + 1);
+                    break;
+            }
+        } else {
+            // For single row view
+            switch (direction) {
+                case 'left':
+                case 'up':
+                    toIndex = Math.max(0, fromIndex - 1);
+                    break;
+                case 'right':
+                case 'down':
+                    toIndex = Math.min(files.length - 1, fromIndex + 1);
+                    break;
+            }
+        }
         
-        if (draggedIndex !== dropIndex) {
+        if (toIndex !== fromIndex) {
             const newFiles = [...files];
-            const draggedFile = newFiles[draggedIndex];
-            newFiles.splice(draggedIndex, 1);
-            newFiles.splice(dropIndex, 0, draggedFile);
+            const itemToMove = newFiles[fromIndex];
+            newFiles.splice(fromIndex, 1);
+            newFiles.splice(toIndex, 0, itemToMove);
             
-            // Update crops object to match new order
+            // Update crops and selected files with the new arrangement
             const newCrops: any = {};
-            const oldCropsEntries = Object.entries(crops);
+            const newSelectedFiles = new Set<number>();
             
-            // Create a mapping for the new positions
+            // Create mapping for the swap
             const indexMapping: { [key: number]: number } = {};
             for (let i = 0; i < files.length; i++) {
-                if (i === draggedIndex) {
-                    indexMapping[i] = dropIndex;
-                } else if (draggedIndex < dropIndex && i > draggedIndex && i <= dropIndex) {
+                if (i === fromIndex) {
+                    indexMapping[i] = toIndex;
+                } else if (fromIndex < toIndex && i > fromIndex && i <= toIndex) {
                     indexMapping[i] = i - 1;
-                } else if (draggedIndex > dropIndex && i >= dropIndex && i < draggedIndex) {
+                } else if (fromIndex > toIndex && i >= toIndex && i < fromIndex) {
                     indexMapping[i] = i + 1;
                 } else {
                     indexMapping[i] = i;
                 }
             }
             
-            // Apply the mapping to crops
-            oldCropsEntries.forEach(([oldIndex, cropData]) => {
+            // Apply mapping to crops
+            Object.entries(crops).forEach(([oldIndex, cropData]) => {
                 const oldIdx = parseInt(oldIndex);
                 const newIdx = indexMapping[oldIdx];
                 if (newIdx !== undefined && cropData) {
@@ -1491,29 +1490,18 @@ function Main({ appName, aboutText } :any) {
                 }
             });
             
+            // Apply mapping to selected files
+            selectedFiles.forEach(oldIdx => {
+                const newIdx = indexMapping[oldIdx];
+                if (newIdx !== undefined) {
+                    newSelectedFiles.add(newIdx);
+                }
+            });
+            
             setFiles(newFiles);
             setCrops(newCrops);
-            
-            // Update selected files indices
-            if (selectedFiles.size > 0) {
-                const newSelectedFiles = new Set<number>();
-                selectedFiles.forEach(oldIdx => {
-                    const newIdx = indexMapping[oldIdx];
-                    if (newIdx !== undefined) {
-                        newSelectedFiles.add(newIdx);
-                    }
-                });
-                setSelectedFiles(newSelectedFiles);
-            }
+            setSelectedFiles(newSelectedFiles);
         }
-        setDraggedIndex(null);
-    };
-
-    const handleDragEnd = (e: React.DragEvent) => {
-        // Reset visual feedback
-        const target = e.target as HTMLElement;
-        target.style.opacity = '1';
-        setDraggedIndex(null);
     };
 
     const toggleRearrangeMode = () => {
@@ -1908,34 +1896,23 @@ function Main({ appName, aboutText } :any) {
                                              transition: "all 0.2s ease",
                                              background: rearrangeMode ? "rgba(33, 150, 243, 0.1)" : "transparent"
                                          }}
-                                         draggable={rearrangeMode}
-                                         onDragStart={(e) => handleDragStart(e, actualIndex)}
-                                         onDragOver={handleDragOver}
-                                         onDragEnter={handleDragEnter}
-                                         onDragLeave={handleDragLeave}
-                                         onDrop={(e) => handleDrop(e, actualIndex)}
-                                         onDragEnd={handleDragEnd}
                                          onMouseDown={(e) => {
-                                             if (rearrangeMode) {
-                                                 e.currentTarget.style.cursor = "grabbing";
-                                             } else {
+                                             if (!rearrangeMode) {
                                                  handleMouseDown(actualIndex);
                                              }
                                          }}
-                                         onMouseUp={(e) => {
-                                             if (rearrangeMode) {
-                                                 e.currentTarget.style.cursor = "grab";
+                                         onMouseUp={() => {
+                                             if (!rearrangeMode) {
+                                                 handleMouseUp();
                                              }
-                                             handleMouseUp();
                                          }}
-                                         onMouseLeave={(e) => {
-                                             if (rearrangeMode) {
-                                                 e.currentTarget.style.cursor = "grab";
+                                         onMouseLeave={() => {
+                                             if (!rearrangeMode) {
+                                                 handleMouseUp();
                                              }
-                                             handleMouseUp();
                                          }}
                                     >
-                                        {isSelected && (
+                                        {isSelected && !rearrangeMode && (
                                             <div style={{
                                                 position: "absolute",
                                                 top: "5px",
@@ -1954,20 +1931,182 @@ function Main({ appName, aboutText } :any) {
                                                 ✓
                                             </div>
                                         )}
-                                        <Cropper
-                                            cropSize={cropSize}
-                                            file={file}
-                                            index={actualIndex}
-                                            onSetCropped={onSetCropped}
-                                            onRemoveImage={onRemoveImage}
-                                            crops={crops}
-                                            setCrops={setCrops}
-                                            keepRatio={keepRatio}
-                                            lockMovement={lockMovement}
-                                            centerCrop={centerCrop}
-                                            onGlobalCropChange={onGlobalCropChange}
-                                            rearrangeMode={rearrangeMode}
-                                        />
+                                        
+                                        {/* Directional Arrow Controls for Rearrange Mode */}
+                                        {rearrangeMode && (
+                                            <div style={{
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
+                                                zIndex: 200,
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                alignItems: "center",
+                                                gap: "2px",
+                                                background: "rgba(0, 0, 0, 0.8)",
+                                                borderRadius: "8px",
+                                                padding: "8px",
+                                                border: "2px solid #2196F3"
+                                            }}>
+                                                {/* Up Arrow */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        moveImage(actualIndex, 'up');
+                                                    }}
+                                                    style={{
+                                                        background: "linear-gradient(135deg, #2196F3, #1976D2)",
+                                                        border: "none",
+                                                        color: "white",
+                                                        width: "32px",
+                                                        height: "32px",
+                                                        borderRadius: "6px",
+                                                        cursor: "pointer",
+                                                        fontSize: "16px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                        transition: "all 0.2s ease"
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1.1)";
+                                                        e.currentTarget.style.background = "linear-gradient(135deg, #1976D2, #1565C0)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1)";
+                                                        e.currentTarget.style.background = "linear-gradient(135deg, #2196F3, #1976D2)";
+                                                    }}
+                                                    title="Move Up"
+                                                >
+                                                    ↑
+                                                </button>
+                                                
+                                                {/* Left and Right Arrows Row */}
+                                                <div style={{ display: "flex", gap: "2px" }}>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            moveImage(actualIndex, 'left');
+                                                        }}
+                                                        style={{
+                                                            background: "linear-gradient(135deg, #2196F3, #1976D2)",
+                                                            border: "none",
+                                                            color: "white",
+                                                            width: "32px",
+                                                            height: "32px",
+                                                            borderRadius: "6px",
+                                                            cursor: "pointer",
+                                                            fontSize: "16px",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                            transition: "all 0.2s ease"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1.1)";
+                                                            e.currentTarget.style.background = "linear-gradient(135deg, #1976D2, #1565C0)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1)";
+                                                            e.currentTarget.style.background = "linear-gradient(135deg, #2196F3, #1976D2)";
+                                                        }}
+                                                        title="Move Left"
+                                                    >
+                                                        ←
+                                                    </button>
+                                                    
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            moveImage(actualIndex, 'right');
+                                                        }}
+                                                        style={{
+                                                            background: "linear-gradient(135deg, #2196F3, #1976D2)",
+                                                            border: "none",
+                                                            color: "white",
+                                                            width: "32px",
+                                                            height: "32px",
+                                                            borderRadius: "6px",
+                                                            cursor: "pointer",
+                                                            fontSize: "16px",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                            transition: "all 0.2s ease"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1.1)";
+                                                            e.currentTarget.style.background = "linear-gradient(135deg, #1976D2, #1565C0)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = "scale(1)";
+                                                            e.currentTarget.style.background = "linear-gradient(135deg, #2196F3, #1976D2)";
+                                                        }}
+                                                        title="Move Right"
+                                                    >
+                                                        →
+                                                    </button>
+                                                </div>
+                                                
+                                                {/* Down Arrow */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        moveImage(actualIndex, 'down');
+                                                    }}
+                                                    style={{
+                                                        background: "linear-gradient(135deg, #2196F3, #1976D2)",
+                                                        border: "none",
+                                                        color: "white",
+                                                        width: "32px",
+                                                        height: "32px",
+                                                        borderRadius: "6px",
+                                                        cursor: "pointer",
+                                                        fontSize: "16px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                        transition: "all 0.2s ease"
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1.1)";
+                                                        e.currentTarget.style.background = "linear-gradient(135deg, #1976D2, #1565C0)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1)";
+                                                        e.currentTarget.style.background = "linear-gradient(135deg, #2196F3, #1976D2)";
+                                                    }}
+                                                    title="Move Down"
+                                                >
+                                                    ↓
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div style={{ 
+                                            pointerEvents: rearrangeMode ? 'none' : 'auto',
+                                            opacity: rearrangeMode ? 0.7 : 1,
+                                            transition: 'opacity 0.3s ease'
+                                        }}>
+                                            <Cropper
+                                                cropSize={cropSize}
+                                                file={file}
+                                                index={actualIndex}
+                                                onSetCropped={onSetCropped}
+                                                onRemoveImage={onRemoveImage}
+                                                crops={crops}
+                                                setCrops={setCrops}
+                                                keepRatio={keepRatio}
+                                                lockMovement={lockMovement}
+                                                centerCrop={centerCrop}
+                                                onGlobalCropChange={onGlobalCropChange}
+                                                rearrangeMode={rearrangeMode}
+                                            />
+                                        </div>
                                     </div>
                                 );
                             })
