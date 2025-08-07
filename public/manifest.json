@@ -1,6 +1,6 @@
 {
-  "short_name": "Images Cropper",
-  "name": "Images Cropper",
+  "short_name": "Smart Image Cropper",
+  "name": "Smart Image Cropper",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,11 +18,13 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "/batch-images-cropper/",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff",
-  "scope": "/batch-images-cropper/",
+  "scope": "/",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "related_applications": [
     {
       "platform": "webapp",
