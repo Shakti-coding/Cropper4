@@ -626,7 +626,7 @@ function Main({ appName, aboutText } :any) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.lineWidth = 2;
 
-        
+        const textWidth = ctx.measureText(watermarkText).width;
         const x = canvas.width - textWidth - 20;
         const y = canvas.height - 20;
 
@@ -872,6 +872,16 @@ function Main({ appName, aboutText } :any) {
         }
     }, [showQualityPanel]);
 
+    // Add preview effects event listener
+    useEffect(() => {
+        const handlePreviewEffects = () => {
+            handleShowPreview();
+        };
+
+        window.addEventListener('preview-effects', handlePreviewEffects);
+        return () => window.removeEventListener('preview-effects', handlePreviewEffects);
+    }, []);
+
     // Live update preview when effects change
     useEffect(() => {
         if (showQualityPanel && qualityPreviewImage) {
@@ -985,7 +995,7 @@ function Main({ appName, aboutText } :any) {
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
 
-                const imgAspectRatio = enhancedImage.canvas.width / enhancedImage.canvas.height;
+                const imgAspectRatio = enhancedImage.canvas ? enhancedImage.canvas.width / enhancedImage.canvas.height : 1;
                 const pageAspectRatio = pageWidth / pageHeight;
 
                 let imgWidth, imgHeight;
