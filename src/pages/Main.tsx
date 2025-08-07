@@ -7,6 +7,7 @@ import About from "../component/About";
 import AdjustmentsPanel from "../component/AdjustmentsPanel";
 import EffectFilters from "../component/EffectFilters";
 import QualityPanel from "../component/QualityPanel";
+import jsPDF from 'jspdf';
 
 const cropSizePresets = [
     {name: "Custom", value: null},
