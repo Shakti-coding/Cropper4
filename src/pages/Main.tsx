@@ -1421,6 +1421,11 @@ function Main({ appName, aboutText } :any) {
         if (!rearrangeMode) return;
         setDraggedIndex(index);
         e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index.toString());
+        
+        // Add visual feedback
+        const target = e.target as HTMLElement;
+        target.style.opacity = '0.5';
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -1429,9 +1434,29 @@ function Main({ appName, aboutText } :any) {
         e.dataTransfer.dropEffect = 'move';
     };
 
+    const handleDragEnter = (e: React.DragEvent) => {
+        if (!rearrangeMode) return;
+        e.preventDefault();
+        const target = e.currentTarget as HTMLElement;
+        target.style.backgroundColor = 'rgba(33, 150, 243, 0.2)';
+        target.style.borderColor = '#2196F3';
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        if (!rearrangeMode) return;
+        const target = e.currentTarget as HTMLElement;
+        target.style.backgroundColor = 'transparent';
+        target.style.borderColor = '#888';
+    };
+
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         if (!rearrangeMode || draggedIndex === null) return;
         e.preventDefault();
+        
+        // Reset visual feedback
+        const target = e.currentTarget as HTMLElement;
+        target.style.backgroundColor = 'transparent';
+        target.style.borderColor = '#888';
         
         if (draggedIndex !== dropIndex) {
             const newFiles = [...files];
@@ -1441,26 +1466,53 @@ function Main({ appName, aboutText } :any) {
             
             // Update crops object to match new order
             const newCrops: any = {};
-            Object.keys(crops).forEach((oldIndex) => {
-                const oldIdx = parseInt(oldIndex);
-                let newIdx = oldIdx;
-                
-                if (oldIdx === draggedIndex) {
-                    newIdx = dropIndex;
-                } else if (draggedIndex < dropIndex && oldIdx > draggedIndex && oldIdx <= dropIndex) {
-                    newIdx = oldIdx - 1;
-                } else if (draggedIndex > dropIndex && oldIdx >= dropIndex && oldIdx < draggedIndex) {
-                    newIdx = oldIdx + 1;
+            const oldCropsEntries = Object.entries(crops);
+            
+            // Create a mapping for the new positions
+            const indexMapping: { [key: number]: number } = {};
+            for (let i = 0; i < files.length; i++) {
+                if (i === draggedIndex) {
+                    indexMapping[i] = dropIndex;
+                } else if (draggedIndex < dropIndex && i > draggedIndex && i <= dropIndex) {
+                    indexMapping[i] = i - 1;
+                } else if (draggedIndex > dropIndex && i >= dropIndex && i < draggedIndex) {
+                    indexMapping[i] = i + 1;
+                } else {
+                    indexMapping[i] = i;
                 }
-                
-                if (crops[oldIndex]) {
-                    newCrops[newIdx] = crops[oldIndex];
+            }
+            
+            // Apply the mapping to crops
+            oldCropsEntries.forEach(([oldIndex, cropData]) => {
+                const oldIdx = parseInt(oldIndex);
+                const newIdx = indexMapping[oldIdx];
+                if (newIdx !== undefined && cropData) {
+                    newCrops[newIdx] = cropData;
                 }
             });
             
             setFiles(newFiles);
             setCrops(newCrops);
+            
+            // Update selected files indices
+            if (selectedFiles.size > 0) {
+                const newSelectedFiles = new Set<number>();
+                selectedFiles.forEach(oldIdx => {
+                    const newIdx = indexMapping[oldIdx];
+                    if (newIdx !== undefined) {
+                        newSelectedFiles.add(newIdx);
+                    }
+                });
+                setSelectedFiles(newSelectedFiles);
+            }
         }
+        setDraggedIndex(null);
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+        // Reset visual feedback
+        const target = e.target as HTMLElement;
+        target.style.opacity = '1';
         setDraggedIndex(null);
     };
 
@@ -1859,7 +1911,10 @@ function Main({ appName, aboutText } :any) {
                                          draggable={rearrangeMode}
                                          onDragStart={(e) => handleDragStart(e, actualIndex)}
                                          onDragOver={handleDragOver}
+                                         onDragEnter={handleDragEnter}
+                                         onDragLeave={handleDragLeave}
                                          onDrop={(e) => handleDrop(e, actualIndex)}
+                                         onDragEnd={handleDragEnd}
                                          onMouseDown={(e) => {
                                              if (rearrangeMode) {
                                                  e.currentTarget.style.cursor = "grabbing";
