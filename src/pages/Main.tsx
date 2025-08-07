@@ -620,6 +620,58 @@ function Main({ appName, aboutText } :any) {
         folderInputRef?.current?.click();
     };
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key.toLowerCase()) {
+                    case 'o':
+                        e.preventDefault();
+                        onSelectSomeFiles();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        onSelectFolder();
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        selectAllFiles();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        if (Object.keys(crops).length > 0) onSaveCropped();
+                        break;
+                    case 'z':
+                        e.preventDefault();
+                        if (Object.keys(crops).length > 0) onSaveAsZip();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        if (Object.keys(crops).length > 0) onGeneratePDF();
+                        break;
+                }
+            }
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [crops]);
+
+    // Calculate total file size
+    const getTotalFileSize = () => {
+        const totalBytes = files.reduce((sum, file) => sum + (file.size || 0), 0);
+        if (totalBytes < 1024) return `${totalBytes} B`;
+        if (totalBytes < 1024 * 1024) return `${(totalBytes / 1024).toFixed(1)} KB`;
+        return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const getProcessedCount = () => {
+        return Object.keys(crops).filter(key => crops[key]?.width && crops[key]?.height).length;
+    };
+
     return (
         <div style={{overflow: "auto", width: "100%", height: "100vh",
             padding: "0 0 4 0",
@@ -820,14 +872,16 @@ function Main({ appName, aboutText } :any) {
                         <div style={{display: "flex", justifyContent: "space-between", gap: 6, position: "relative"}}>
                             {files.length > 0 && (
                                 <>
-                                    <div title={files.length + " files"}>{files.length} files</div>
-                                    <button onClick={onSelectSomeFiles} className="button">Add Files</button>
-                                    <button onClick={onSelectFolder} className="button">📁 Add Folder</button>
+                                    <div title={`${files.length} files • ${getTotalFileSize()} • ${getProcessedCount()} cropped`}>
+                                        📊 {files.length} files ({getTotalFileSize()}) • ✂️ {getProcessedCount()} cropped
+                                    </div>
+                                    <button onClick={onSelectSomeFiles} className="button" title="Ctrl+O">Add Files</button>
+                                    <button onClick={onSelectFolder} className="button" title="Ctrl+F">📁 Add Folder</button>
                                     {selectedFiles.size > 0 && (
                                         <>
                                             <div style={{color: "#4CAF50"}}>✓ {selectedFiles.size} selected</div>
-                                            <button onClick={selectAllFiles} className="button">Select All</button>
-                                            <button onClick={clearSelection} className="button">Clear</button>
+                                            <button onClick={selectAllFiles} className="button" title="Ctrl+A">Select All</button>
+                                            <button onClick={clearSelection} className="button" title="Escape">Clear</button>
                                         </>
                                     )}
                                 </>
@@ -847,7 +901,7 @@ function Main({ appName, aboutText } :any) {
                                 type="file"
                                 multiple
                                 accept="image/*"
-                                webkitdirectory=""
+                                {...({ webkitdirectory: "" } as any)}
                                 onChange={(e: any) => {
                                     onSetFiles(e.target.files);
                                 }}
@@ -889,13 +943,13 @@ function Main({ appName, aboutText } :any) {
                                             <div className="box-bg">Resize to {cropSize.width}x{cropSize.height}</div>
                                         </div>
                                     )}
-                                    <button onClick={onSaveCropped} className="export-button">
+                                    <button onClick={onSaveCropped} className="export-button" title="Ctrl+E">
                                         📷 Export {selectedFiles.size > 0 ? `Selected (${selectedFiles.size})` : 'All'}
                                     </button>
-                                    <button onClick={onSaveAsZip} className="export-button">
+                                    <button onClick={onSaveAsZip} className="export-button" title="Ctrl+Z">
                                         📦 ZIP {selectedFiles.size > 0 ? `Selected (${selectedFiles.size})` : 'All'}
                                     </button>
-                                    <button onClick={onGeneratePDF} className="export-button">
+                                    <button onClick={onGeneratePDF} className="export-button" title="Ctrl+P">
                                         📄 PDF {selectedFiles.size > 0 ? `Selected (${selectedFiles.size})` : 'All'}
                                     </button>
                                 </div>
@@ -928,6 +982,25 @@ function Main({ appName, aboutText } :any) {
                                             className="select-some-files"
                                             style={{fontSize: "1.2em", margin: "10px 0"}}
                                         >📁 Or select a folder with images</h2>
+                                        
+                                        <div style={{
+                                            background: "rgba(0,0,0,0.7)", 
+                                            padding: "15px", 
+                                            borderRadius: "8px", 
+                                            marginTop: "20px",
+                                            border: "1px solid #333"
+                                        }}>
+                                            <h3 style={{color: "#4CAF50", marginBottom: "10px"}}>⌨️ Keyboard Shortcuts</h3>
+                                            <div style={{fontSize: "0.9em", color: "#ccc", textAlign: "left"}}>
+                                                <div>• <strong>Ctrl+O</strong> - Open Files</div>
+                                                <div>• <strong>Ctrl+F</strong> - Open Folder</div>
+                                                <div>• <strong>Ctrl+A</strong> - Select All</div>
+                                                <div>• <strong>Ctrl+E</strong> - Export Images</div>
+                                                <div>• <strong>Ctrl+Z</strong> - Export as ZIP</div>
+                                                <div>• <strong>Ctrl+P</strong> - Export as PDF</div>
+                                                <div>• <strong>Escape</strong> - Clear Selection</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </About>
                             )}
