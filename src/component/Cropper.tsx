@@ -17,6 +17,19 @@ interface Props {
 }
 
 const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onSetCropped, onRemoveImage, keepRatio, lockMovement, centerCrop, onGlobalCropChange }) => {
+  // Check if we're in rearrange mode by looking at the parent container's style
+  const [isRearrangeMode, setIsRearrangeMode] = useState(false);
+
+  useEffect(() => {
+    const checkRearrangeMode = () => {
+      const container = document.querySelector(`[draggable="true"]`);
+      setIsRearrangeMode(!!container);
+    };
+    
+    checkRearrangeMode();
+    const interval = setInterval(checkRearrangeMode, 500);
+    return () => clearInterval(interval);
+  }, []);
   const crop = crops[index];
   const onSetCrops = (newCropSize: any = null) => {
     if(newCropSize == null) return;
@@ -84,13 +97,45 @@ const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onS
             <button className="circle-button" onClick={()=>onRemoveImage(index)}>X</button>
           </div>
         </div>
-            <ReactCrop
-                key={file?.name}
-                src={imageToCrop}
-                onImageLoaded={onImageLoaded}
-                crop={crop}
-                onChange={onSetCrops}
-            />
+            {isRearrangeMode ? (
+                <div style={{ position: 'relative' }}>
+                    <img 
+                        src={imageToCrop} 
+                        alt={file?.name}
+                        style={{ 
+                            width: '100%', 
+                            height: 'auto', 
+                            maxHeight: '300px', 
+                            objectFit: 'contain',
+                            opacity: 0.7 
+                        }} 
+                    />
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'rgba(0, 123, 255, 0.9)',
+                        color: 'white',
+                        padding: '10px 15px',
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                    }}>
+                        🔄 Drag to Rearrange
+                    </div>
+                </div>
+            ) : (
+                <ReactCrop
+                    key={file?.name}
+                    src={imageToCrop}
+                    onImageLoaded={onImageLoaded}
+                    crop={crop}
+                    onChange={onSetCrops}
+                />
+            )}
       </div>
   );
 };
