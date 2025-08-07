@@ -1,3 +1,4 @@
+
 import {useEffect, useRef, useState} from "react";
 import "../App.css";
 import Cropper from "../component/Cropper";
@@ -49,13 +50,13 @@ interface CropTab {
 }
 
 // Draggable Panel Component
-const DraggablePanel = ({
-    title,
-    onClose,
-    children,
-    initialPosition,
-    initialSize,
-    borderColor = '#007bff'
+const DraggablePanel = ({ 
+    title, 
+    onClose, 
+    children, 
+    initialPosition, 
+    initialSize, 
+    borderColor = '#007bff' 
 }: {
     title: string;
     onClose: () => void;
@@ -78,7 +79,7 @@ const DraggablePanel = ({
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('.no-drag')) return;
-
+        
         setIsDragging(true);
         dragRef.current = {
             startX: e.clientX,
@@ -94,7 +95,7 @@ const DraggablePanel = ({
         if (isDragging) {
             const deltaX = e.clientX - dragRef.current.startX;
             const deltaY = e.clientY - dragRef.current.startY;
-
+            
             setPosition({
                 x: Math.max(0, Math.min(window.innerWidth - size.width, dragRef.current.startPosX + deltaX)),
                 y: Math.max(0, Math.min(window.innerHeight - size.height, dragRef.current.startPosY + deltaY))
@@ -111,7 +112,7 @@ const DraggablePanel = ({
         if (isDragging || isResizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
-
+            
             return () => {
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
@@ -122,7 +123,7 @@ const DraggablePanel = ({
     const handleResize = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsResizing(true);
-
+        
         const startX = e.clientX;
         const startY = e.clientY;
         const startWidth = size.width;
@@ -131,7 +132,7 @@ const DraggablePanel = ({
         const handleResizeMove = (e: MouseEvent) => {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
-
+            
             setSize({
                 width: Math.max(280, startWidth + deltaX),
                 height: Math.max(300, startHeight + deltaY)
@@ -149,7 +150,7 @@ const DraggablePanel = ({
     };
 
     return (
-        <div
+        <div 
             style={{
                 position: 'fixed',
                 left: `${position.x}px`,
@@ -168,7 +169,7 @@ const DraggablePanel = ({
             }}
         >
             {/* Header with drag handle */}
-            <div
+            <div 
                 onMouseDown={handleMouseDown}
                 style={{
                     background: borderColor,
@@ -185,7 +186,7 @@ const DraggablePanel = ({
             >
                 <span>{title}</span>
                 <div className="no-drag" style={{ display: 'flex', gap: '5px' }}>
-                    <button
+                    <button 
                         onClick={() => setIsMinimized(!isMinimized)}
                         style={{
                             background: 'none',
@@ -199,7 +200,7 @@ const DraggablePanel = ({
                     >
                         {isMinimized ? '🔼' : '🔽'}
                     </button>
-                    <button
+                    <button 
                         onClick={onClose}
                         style={{
                             background: 'none',
@@ -218,7 +219,7 @@ const DraggablePanel = ({
 
             {/* Content */}
             {!isMinimized && (
-                <div
+                <div 
                     style={{
                         flex: 1,
                         overflowY: 'auto',
@@ -276,7 +277,7 @@ function Main({ appName, aboutText } :any) {
         isActive: true
     }]);
     const [activeTabId, setActiveTabId] = useState('tab-1');
-
+    
     // Current tab data
     const activeTab = tabs.find(tab => tab.id === activeTabId) || tabs[0];
     const [files, setFiles] = useState<any[]>(activeTab.files);
@@ -287,20 +288,20 @@ function Main({ appName, aboutText } :any) {
     const [lockMovement, setLockMovement] = useState(activeTab.settings.lockMovement);
     const [centerCrop, setCenterCrop] = useState(activeTab.settings.centerCrop);
     const [enableOCR, setEnableOCR] = useState(activeTab.settings.enableOCR);
-
+    
     // Selection and UI states
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [holdTimer, setHoldTimer] = useState<any>(null);
     const [croppedImages, setCroppedImages] = useState<any>({});
     const [gridView, setGridView] = useState(true);
     const [currentView, setCurrentView] = useState<'crop' | 'history'>('crop');
-
+    
     // Processing and history
     const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [editingTabId, setEditingTabId] = useState<string | null>(null);
     const [editingTabName, setEditingTabName] = useState<string>('');
-
+    
     // Quality panel states
     const [showQualityPanel, setShowQualityPanel] = useState<boolean>(false);
     const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
@@ -357,8 +358,8 @@ function Main({ appName, aboutText } :any) {
 
     // Save current tab state
     const saveCurrentTabState = () => {
-        setTabs(prev => prev.map(tab =>
-            tab.id === activeTabId
+        setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
                 ? {
                     ...tab,
                     files,
@@ -381,7 +382,7 @@ function Main({ appName, aboutText } :any) {
         const timeoutId = setTimeout(() => {
             saveCurrentTabState();
         }, 100); // Debounce by 100ms
-
+        
         return () => clearTimeout(timeoutId);
     }, [files, crops, cropSize, keepRatio, resizeOnExport, lockMovement, centerCrop, enableOCR]);
 
@@ -402,14 +403,14 @@ function Main({ appName, aboutText } :any) {
             },
             isActive: true
         };
-
+        
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
     };
 
     const closeTab = (tabId: string) => {
         if (tabs.length === 1) return; // Don't close last tab
-
+        
         setTabs(prev => {
             const filtered = prev.filter(t => t.id !== tabId);
             if (tabId === activeTabId && filtered.length > 0) {
@@ -426,8 +427,8 @@ function Main({ appName, aboutText } :any) {
 
     const saveTabName = () => {
         if (editingTabId && editingTabName.trim()) {
-            setTabs(prev => prev.map(tab =>
-                tab.id === editingTabId
+            setTabs(prev => prev.map(tab => 
+                tab.id === editingTabId 
                     ? { ...tab, name: editingTabName.trim() }
                     : tab
             ));
@@ -450,18 +451,18 @@ function Main({ appName, aboutText } :any) {
         // Filter only image files
         const imageFiles = allFiles.filter((file: File) => file.type.startsWith('image/'));
         if (imageFiles.length === 0) return;
-
+        
         // Remove duplicates based on file name and size
         const uniqueFiles = imageFiles.filter((newFile: File) => {
-            return !files.some((existingFile: File) =>
-                existingFile.name === newFile.name &&
+            return !files.some((existingFile: File) => 
+                existingFile.name === newFile.name && 
                 existingFile.size === newFile.size &&
                 existingFile.lastModified === newFile.lastModified
             );
         });
-
+        
         console.log("set new files", { input, files, newFiles: uniqueFiles, filtered: imageFiles.length - uniqueFiles.length });
-
+        
         if (uniqueFiles.length > 0) {
             setFiles(prev => [...prev, ...uniqueFiles]);
         }
@@ -620,7 +621,7 @@ function Main({ appName, aboutText } :any) {
 
     const addWatermark = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableWatermark || !watermarkText?.trim()) return;
-
+        
         const fontSize = Math.max(canvas.width / 20, 16);
         ctx.font = `${fontSize}px Arial`;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -637,7 +638,7 @@ function Main({ appName, aboutText } :any) {
 
     const addBorder = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableBorder || borderWidth <= 0) return;
-
+        
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = borderWidth;
         ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
@@ -645,7 +646,7 @@ function Main({ appName, aboutText } :any) {
 
     const addSignature = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableSignature || !signatureText?.trim()) return;
-
+        
         const fontSize = Math.max(canvas.width / 25, 12);
         ctx.font = `${fontSize}px cursive`;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -861,7 +862,7 @@ function Main({ appName, aboutText } :any) {
 
     // Apply effects automatically when quality settings change
     useEffect(() => {
-        if (showQualityPanel && qualityPreviewImage) {
+        if (qualityPreviewImage) {
             applyQualityEffectsToPreview();
         }
     }, [selectedFilter, adjustmentValues, watermarkText, borderWidth, borderColor, signatureText, enableWatermark, enableBorder, enableSignature, qualityPreviewImage]);
@@ -1106,7 +1107,7 @@ function Main({ appName, aboutText } :any) {
 
     const onSaveCropped = () => {
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         indicesToSave.forEach((index: number) => {
             const crop = crops[index];
             if (crop) {
@@ -1126,7 +1127,7 @@ function Main({ appName, aboutText } :any) {
     const onSaveAsZip = async () => {
         const jobId = `zip-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         const newJob: ProcessingJob = {
             id: jobId,
             name: `ZIP Export (${indicesToSave.length} images)`,
@@ -1155,8 +1156,8 @@ function Main({ appName, aboutText } :any) {
                         }
                         const base64Data = croppedImage.dataUrl.split(',')[1];
                         zip.file(croppedImage.filename, base64Data, { base64: true });
-
-                        setProcessingJobs(prev => prev.map(job =>
+                        
+                        setProcessingJobs(prev => prev.map(job => 
                             job.id === jobId ? { ...job, progress: i + 1 } : job
                         ));
                     } catch (imageError) {
@@ -1170,13 +1171,13 @@ function Main({ appName, aboutText } :any) {
             link.href = URL.createObjectURL(zipBlob);
             link.download = `cropped_images_${new Date().toISOString().slice(0, 10)}.zip`;
             link.click();
-
+            
             // Clean up URL after a delay
             setTimeout(() => {
                 URL.revokeObjectURL(link.href);
             }, 100);
 
-            setProcessingJobs(prev => prev.map(job =>
+            setProcessingJobs(prev => prev.map(job => 
                 job.id === jobId ? { ...job, status: 'completed', result: { filename: link.download } } : job
             ));
 
@@ -1194,7 +1195,7 @@ function Main({ appName, aboutText } :any) {
 
         } catch (error) {
             console.error('Error creating ZIP:', error);
-            setProcessingJobs(prev => prev.map(job =>
+            setProcessingJobs(prev => prev.map(job => 
                 job.id === jobId ? { ...job, status: 'error' } : job
             ));
         }
@@ -1203,7 +1204,7 @@ function Main({ appName, aboutText } :any) {
     const onGeneratePDF = async () => {
         const jobId = `pdf-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         const newJob: ProcessingJob = {
             id: jobId,
             name: `PDF Export (${indicesToSave.length} images)`,
@@ -1303,7 +1304,7 @@ function Main({ appName, aboutText } :any) {
                     console.warn(`Failed to process image ${index}:`, imageError);
                 }
 
-                setProcessingJobs(prev => prev.map(job =>
+                setProcessingJobs(prev => prev.map(job => 
                     job.id === jobId ? { ...job, progress: i + 1 } : job
                 ));
             }
@@ -1312,7 +1313,7 @@ function Main({ appName, aboutText } :any) {
             const filename = `${tabName}_${new Date().toISOString().slice(0, 10)}.pdf`;
             pdf.save(filename);
 
-            setProcessingJobs(prev => prev.map(job =>
+            setProcessingJobs(prev => prev.map(job => 
                 job.id === jobId ? { ...job, status: 'completed', result: { filename } } : job
             ));
 
@@ -1330,7 +1331,7 @@ function Main({ appName, aboutText } :any) {
 
         } catch (error) {
             console.error('Error creating PDF:', error);
-            setProcessingJobs(prev => prev.map(job =>
+            setProcessingJobs(prev => prev.map(job => 
                 job.id === jobId ? { ...job, status: 'error' } : job
             ));
         }
@@ -1350,7 +1351,7 @@ function Main({ appName, aboutText } :any) {
             settings: historyItem.settings,
             isActive: true
         };
-
+        
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
         setCurrentView('crop');
@@ -1419,15 +1420,15 @@ function Main({ appName, aboutText } :any) {
     // Arrow-based movement functions
     const moveImage = (fromIndex: number, direction: 'up' | 'down' | 'left' | 'right') => {
         if (!rearrangeMode || files.length < 2) return;
-
+        
         let toIndex = fromIndex;
-
+        
         if (gridView) {
             // For grid view, calculate columns based on container width
             const containerWidth = window.innerWidth - 32; // Account for padding
             const itemWidth = 300 + 8; // Min width + gap
             const columns = Math.floor(containerWidth / itemWidth) || 1;
-
+            
             switch (direction) {
                 case 'up':
                     toIndex = Math.max(0, fromIndex - columns);
@@ -1455,17 +1456,17 @@ function Main({ appName, aboutText } :any) {
                     break;
             }
         }
-
+        
         if (toIndex !== fromIndex) {
             const newFiles = [...files];
             const itemToMove = newFiles[fromIndex];
             newFiles.splice(fromIndex, 1);
             newFiles.splice(toIndex, 0, itemToMove);
-
+            
             // Update crops and selected files with the new arrangement
             const newCrops: any = {};
             const newSelectedFiles = new Set<number>();
-
+            
             // Create mapping for the swap
             const indexMapping: { [key: number]: number } = {};
             for (let i = 0; i < files.length; i++) {
@@ -1479,7 +1480,7 @@ function Main({ appName, aboutText } :any) {
                     indexMapping[i] = i;
                 }
             }
-
+            
             // Apply mapping to crops
             Object.entries(crops).forEach(([oldIndex, cropData]) => {
                 const oldIdx = parseInt(oldIndex);
@@ -1488,7 +1489,7 @@ function Main({ appName, aboutText } :any) {
                     newCrops[newIdx] = cropData;
                 }
             });
-
+            
             // Apply mapping to selected files
             selectedFiles.forEach(oldIdx => {
                 const newIdx = indexMapping[oldIdx];
@@ -1496,7 +1497,7 @@ function Main({ appName, aboutText } :any) {
                     newSelectedFiles.add(newIdx);
                 }
             });
-
+            
             setFiles(newFiles);
             setCrops(newCrops);
             setSelectedFiles(newSelectedFiles);
@@ -1522,10 +1523,10 @@ function Main({ appName, aboutText } :any) {
         }}>
             {/* Tab Bar */}
             <div style={{
-                display: "flex",
-                gap: "2px",
-                padding: "5px",
-                background: "rgba(0,0,0,0.8)",
+                display: "flex", 
+                gap: "2px", 
+                padding: "5px", 
+                background: "rgba(0,0,0,0.8)", 
                 borderBottom: "1px solid #333",
                 overflowX: "auto"
             }}>
@@ -1566,18 +1567,18 @@ function Main({ appName, aboutText } :any) {
                             </div>
                         ) : (
                             <>
-                                <span
+                                <span 
                                     onClick={() => setActiveTabId(tab.id)}
                                     style={{ cursor: "pointer" }}
                                 >
                                     {tab.name}
                                 </span>
-                                <button
+                                <button 
                                     onClick={() => startEditingTab(tab.id, tab.name)}
                                     style={{
-                                        background: "none",
-                                        border: "none",
-                                        color: "#888",
+                                        background: "none", 
+                                        border: "none", 
+                                        color: "#888", 
                                         cursor: "pointer",
                                         fontSize: "10px"
                                     }}
@@ -1586,12 +1587,12 @@ function Main({ appName, aboutText } :any) {
                                     ✏️
                                 </button>
                                 {tabs.length > 1 && (
-                                    <button
+                                    <button 
                                         onClick={() => closeTab(tab.id)}
                                         style={{
-                                            background: "none",
-                                            border: "none",
-                                            color: "#888",
+                                            background: "none", 
+                                            border: "none", 
+                                            color: "#888", 
                                             cursor: "pointer",
                                             fontSize: "12px"
                                         }}
@@ -1603,12 +1604,12 @@ function Main({ appName, aboutText } :any) {
                         )}
                     </div>
                 ))}
-                <button
+                <button 
                     onClick={addNewTab}
                     style={{
-                        background: "#333",
-                        border: "none",
-                        color: "white",
+                        background: "#333", 
+                        border: "none", 
+                        color: "white", 
                         padding: "5px 10px",
                         borderRadius: "3px",
                         cursor: "pointer"
@@ -1620,18 +1621,18 @@ function Main({ appName, aboutText } :any) {
 
             {/* View Toggle */}
             <div style={{
-                display: "flex",
-                gap: "5px",
-                padding: "5px",
+                display: "flex", 
+                gap: "5px", 
+                padding: "5px", 
                 background: "rgba(0,0,0,0.6)"
             }}>
-                <button
+                <button 
                     onClick={() => setCurrentView('crop')}
                     className={currentView === 'crop' ? 'export-button' : 'button'}
                 >
                     🖼️ Cropping
                 </button>
-                <button
+                <button 
                     onClick={() => setCurrentView('history')}
                     className={currentView === 'history' ? 'export-button' : 'button'}
                 >
@@ -1649,8 +1650,8 @@ function Main({ appName, aboutText } :any) {
                     <h4>Background Processing:</h4>
                     {processingJobs.map(job => (
                         <div key={job.id} style={{
-                            display: "flex",
-                            justifyContent: "space-between",
+                            display: "flex", 
+                            justifyContent: "space-between", 
                             alignItems: "center",
                             padding: "5px",
                             background: "rgba(255,255,255,0.1)",
@@ -1711,14 +1712,6 @@ function Main({ appName, aboutText } :any) {
             {/* Cropping View */}
             {currentView === 'crop' && (
                 <>
-                    {/* Separator Line */}
-                    {files.length > 0 && (
-                        <div style={{ 
-                            height: '1px', 
-                            background: 'linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent)', 
-                            margin: '0 10px 10px 10px' 
-                        }} />
-                    )}
                     <div className={files.length > 0 ? "top-header" : undefined} style={{display: "flex", justifyContent: "space-between", position: "sticky", top: 0, left: 0, zIndex: 999}}>
                         <div style={{display: "flex", justifyContent: "space-between", gap: 6, position: "relative"}}>
                             {files.length > 0 && (
@@ -1782,7 +1775,7 @@ function Main({ appName, aboutText } :any) {
                                         <input type="checkbox" checked={rearrangeMode} readOnly />
                                         <div className="box-bg">🔄 Rearrange</div>
                                     </div>
-                                    <button
+                                    <button 
                                         className={`quality-toggle-btn ${showQualityPanel ? 'active' : ''}`}
                                         onClick={() => {
                                             setShowQualityPanel(!showQualityPanel);
@@ -1809,7 +1802,7 @@ function Main({ appName, aboutText } :any) {
                                     </button>
                                 </div>
 
-
+                                
 
                                 <div style={{display: "flex", gap: 4, alignItems: "center"}}>
                                     <div onClick={()=> setEnableOCR((prev:boolean) => !prev)} className="checkbox" title="Enable OCR for PDF searchable text">
@@ -1845,11 +1838,11 @@ function Main({ appName, aboutText } :any) {
 
                     <div>
                         <div style={{
-                            display: gridView ? "grid" : "flex",
+                            display: gridView ? "grid" : "flex", 
                             gridTemplateColumns: gridView ? "repeat(auto-fit, minmax(300px, 1fr))" : "none",
-                            flexWrap: gridView ? "nowrap" : "wrap",
-                            gap: "0.5rem",
-                            padding: "0.5rem",
+                            flexWrap: gridView ? "nowrap" : "wrap", 
+                            gap: "0.5rem", 
+                            padding: "0.5rem", 
                             color: "white",
                             maxWidth: gridView ? "none" : "none",
                             margin: gridView ? "0" : "0",
@@ -1868,9 +1861,9 @@ function Main({ appName, aboutText } :any) {
                                         >📁 Or select a folder with images</h2>
 
                                         <div style={{
-                                            background: "rgba(0,0,0,0.7)",
-                                            padding: "15px",
-                                            borderRadius: "8px",
+                                            background: "rgba(0,0,0,0.7)", 
+                                            padding: "15px", 
+                                            borderRadius: "8px", 
                                             marginTop: "20px",
                                             border: "1px solid #333"
                                         }}>
@@ -1892,7 +1885,7 @@ function Main({ appName, aboutText } :any) {
                                 .map((file, actualIndex) => {
                                     const isSelected = selectedFiles.has(actualIndex);
                                 return file && (
-                                    <div key={file?.name + actualIndex}
+                                    <div key={file?.name + actualIndex} 
                                          style={{
                                              position: "relative",
                                              border: isSelected ? "3px solid #4CAF50" : rearrangeMode && draggedIndex === actualIndex ? "3px solid #2196F3" : rearrangeMode ? "2px dashed #888" : "none",
@@ -1906,15 +1899,11 @@ function Main({ appName, aboutText } :any) {
                                          onMouseDown={(e) => {
                                              if (!rearrangeMode) {
                                                  handleMouseDown(actualIndex);
-                                             } else {
-                                                 setDraggedIndex(actualIndex);
                                              }
                                          }}
                                          onMouseUp={() => {
                                              if (!rearrangeMode) {
                                                  handleMouseUp();
-                                             } else {
-                                                 setDraggedIndex(null);
                                              }
                                          }}
                                          onMouseLeave={() => {
@@ -1942,23 +1931,23 @@ function Main({ appName, aboutText } :any) {
                                                 ✓
                                             </div>
                                         )}
-
+                                        
                                         {/* Directional Arrow Controls for Rearrange Mode */}
                                         {rearrangeMode && (
                                             <div style={{
                                                 position: "absolute",
                                                 top: "50%",
                                                 left: "50%",
+                                                transform: "translate(-50%, -50%)",
                                                 zIndex: 200,
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 alignItems: "center",
-                                                gap: "4px",
+                                                gap: "2px",
                                                 background: "rgba(0, 0, 0, 0.8)",
-                                                borderRadius: "10px",
-                                                padding: "10px",
-                                                border: "2px solid #2196F3",
-                                                transform: "translate(-50%, -50%)"
+                                                borderRadius: "8px",
+                                                padding: "8px",
+                                                border: "2px solid #2196F3"
                                             }}>
                                                 {/* Up Arrow */}
                                                 <button
@@ -1970,17 +1959,16 @@ function Main({ appName, aboutText } :any) {
                                                         background: "linear-gradient(135deg, #2196F3, #1976D2)",
                                                         border: "none",
                                                         color: "white",
-                                                        width: "40px",
-                                                        height: "40px",
-                                                        borderRadius: "8px",
+                                                        width: "32px",
+                                                        height: "32px",
+                                                        borderRadius: "6px",
                                                         cursor: "pointer",
-                                                        fontSize: "20px",
+                                                        fontSize: "16px",
                                                         display: "flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
-                                                        boxShadow: "0 3px 6px rgba(0,0,0,0.4)",
-                                                        transition: "all 0.2s ease",
-                                                        fontWeight: "bold"
+                                                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                        transition: "all 0.2s ease"
                                                     }}
                                                     onMouseEnter={(e) => {
                                                         e.currentTarget.style.transform = "scale(1.1)";
@@ -1994,9 +1982,9 @@ function Main({ appName, aboutText } :any) {
                                                 >
                                                     ↑
                                                 </button>
-
+                                                
                                                 {/* Left and Right Arrows Row */}
-                                                <div style={{ display: "flex", gap: "4px" }}>
+                                                <div style={{ display: "flex", gap: "2px" }}>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -2006,17 +1994,16 @@ function Main({ appName, aboutText } :any) {
                                                             background: "linear-gradient(135deg, #2196F3, #1976D2)",
                                                             border: "none",
                                                             color: "white",
-                                                            width: "40px",
-                                                            height: "40px",
-                                                            borderRadius: "8px",
+                                                            width: "32px",
+                                                            height: "32px",
+                                                            borderRadius: "6px",
                                                             cursor: "pointer",
-                                                            fontSize: "20px",
+                                                            fontSize: "16px",
                                                             display: "flex",
                                                             alignItems: "center",
                                                             justifyContent: "center",
-                                                            boxShadow: "0 3px 6px rgba(0,0,0,0.4)",
-                                                            transition: "all 0.2s ease",
-                                                            fontWeight: "bold"
+                                                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                            transition: "all 0.2s ease"
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             e.currentTarget.style.transform = "scale(1.1)";
@@ -2030,7 +2017,7 @@ function Main({ appName, aboutText } :any) {
                                                     >
                                                         ←
                                                     </button>
-
+                                                    
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -2040,17 +2027,16 @@ function Main({ appName, aboutText } :any) {
                                                             background: "linear-gradient(135deg, #2196F3, #1976D2)",
                                                             border: "none",
                                                             color: "white",
-                                                            width: "40px",
-                                                            height: "40px",
-                                                            borderRadius: "8px",
+                                                            width: "32px",
+                                                            height: "32px",
+                                                            borderRadius: "6px",
                                                             cursor: "pointer",
-                                                            fontSize: "20px",
+                                                            fontSize: "16px",
                                                             display: "flex",
                                                             alignItems: "center",
                                                             justifyContent: "center",
-                                                            boxShadow: "0 3px 6px rgba(0,0,0,0.4)",
-                                                            transition: "all 0.2s ease",
-                                                            fontWeight: "bold"
+                                                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                            transition: "all 0.2s ease"
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             e.currentTarget.style.transform = "scale(1.1)";
@@ -2065,7 +2051,7 @@ function Main({ appName, aboutText } :any) {
                                                         →
                                                     </button>
                                                 </div>
-
+                                                
                                                 {/* Down Arrow */}
                                                 <button
                                                     onClick={(e) => {
@@ -2076,17 +2062,16 @@ function Main({ appName, aboutText } :any) {
                                                         background: "linear-gradient(135deg, #2196F3, #1976D2)",
                                                         border: "none",
                                                         color: "white",
-                                                        width: "40px",
-                                                        height: "40px",
-                                                        borderRadius: "8px",
+                                                        width: "32px",
+                                                        height: "32px",
+                                                        borderRadius: "6px",
                                                         cursor: "pointer",
-                                                        fontSize: "20px",
+                                                        fontSize: "16px",
                                                         display: "flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
-                                                        boxShadow: "0 3px 6px rgba(0,0,0,0.4)",
-                                                        transition: "all 0.2s ease",
-                                                        fontWeight: "bold"
+                                                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                                        transition: "all 0.2s ease"
                                                     }}
                                                     onMouseEnter={(e) => {
                                                         e.currentTarget.style.transform = "scale(1.1)";
@@ -2102,7 +2087,7 @@ function Main({ appName, aboutText } :any) {
                                                 </button>
                                             </div>
                                         )}
-                                        <div style={{
+                                        <div style={{ 
                                             pointerEvents: rearrangeMode ? 'none' : 'auto',
                                             opacity: rearrangeMode ? 0.7 : 1,
                                             transition: 'opacity 0.3s ease'
@@ -2133,7 +2118,7 @@ function Main({ appName, aboutText } :any) {
 
             {/* Floating Preview Window */}
             {showFloatingPreview && previewImage && (
-                <div
+                <div 
                     style={{
                         position: 'fixed',
                         left: `${previewPosition.x}px`,
@@ -2150,7 +2135,7 @@ function Main({ appName, aboutText } :any) {
                         minHeight: '150px'
                     }}
                 >
-                    <div
+                    <div 
                         style={{
                             background: '#007bff',
                             color: 'white',
@@ -2183,7 +2168,7 @@ function Main({ appName, aboutText } :any) {
                         }}
                     >
                         <span>🖼️ Live Preview</span>
-                        <button
+                        <button 
                             onClick={() => setShowFloatingPreview(false)}
                             style={{
                                 background: 'none',
@@ -2197,8 +2182,8 @@ function Main({ appName, aboutText } :any) {
                         </button>
                     </div>
                     <div style={{ padding: '10px', height: 'calc(100% - 40px)', overflow: 'hidden', position: 'relative' }}>
-                        <img
-                            src={previewImage}
+                        <img 
+                            src={previewImage} 
                             alt="Floating preview"
                             style={{
                                 width: '100%',
@@ -2293,7 +2278,7 @@ function Main({ appName, aboutText } :any) {
                         flexDirection: 'column',
                         alignItems: 'center'
                     }}>
-                        <button
+                        <button 
                             onClick={() => setShowPreviewPopup(false)}
                             style={{
                                 position: 'absolute',
@@ -2312,9 +2297,9 @@ function Main({ appName, aboutText } :any) {
                             ✕
                         </button>
                         <h3 style={{ color: 'black', marginBottom: '15px' }}>Quality Tools Preview</h3>
-                        <img
-                            src={previewImage}
-                            alt="Preview with effects"
+                        <img 
+                            src={previewImage} 
+                            alt="Preview with effects" 
                             style={{
                                 maxWidth: '100%',
                                 maxHeight: '70vh',
@@ -2324,7 +2309,7 @@ function Main({ appName, aboutText } :any) {
                             }}
                         />
                         <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                            <button
+                            <button 
                                 onClick={loadSavedAdjustments}
                                 style={{
                                     background: '#4CAF50',
@@ -2337,7 +2322,7 @@ function Main({ appName, aboutText } :any) {
                             >
                                 Load Saved Settings
                             </button>
-                            <button
+                            <button 
                                 onClick={() => setShowPreviewPopup(false)}
                                 style={{
                                     background: '#007bff',
@@ -2439,7 +2424,7 @@ function Main({ appName, aboutText } :any) {
                         }}>
                             <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Live Preview</h3>
                             <div style={{ display: 'flex', gap: '5px' }}>
-                                <button
+                                <button 
                                     onClick={() => setShowFloatingPreview(!showFloatingPreview)}
                                     style={{
                                         background: "#007bff",
@@ -2453,7 +2438,7 @@ function Main({ appName, aboutText } :any) {
                                 >
                                     {showFloatingPreview ? '📌' : '🔄'}
                                 </button>
-                                <button
+                                <button 
                                     onClick={generateQualityPreview}
                                     style={{
                                         background: "#4CAF50",
@@ -2477,8 +2462,8 @@ function Main({ appName, aboutText } :any) {
                                 </div>
                             ) : previewImage ? (
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                        position: 'relative',
+                                    <div style={{ 
+                                        position: 'relative', 
                                         display: 'inline-block',
                                         width: '100%',
                                         height: '120px',
@@ -2486,8 +2471,8 @@ function Main({ appName, aboutText } :any) {
                                         borderRadius: '5px',
                                         overflow: 'hidden'
                                     }}>
-                                        <img
-                                            src={previewImage}
+                                        <img 
+                                            src={previewImage} 
                                             alt="Preview"
                                             style={{
                                                 width: '100%',
@@ -2498,9 +2483,9 @@ function Main({ appName, aboutText } :any) {
                                         />
                                     </div>
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
-                                        <button
+                                        <button 
                                             onClick={handleSaveAdjustments}
-                                            style={{
+                                            style={{ 
                                                 flex: 1,
                                                 background: "#4CAF50",
                                                 color: "white",
@@ -2515,11 +2500,11 @@ function Main({ appName, aboutText } :any) {
                                             💾 Apply All
                                         </button>
                                         {Object.keys(originalCroppedImages).length > 0 && (
-                                            <button
+                                            <button 
                                                 onClick={handleUndoAdjustments}
-                                                style={{
+                                                style={{ 
                                                     flex: 1,
-                                                    background: '#f44336',
+                                                    background: '#f44336', 
                                                     color: 'white',
                                                     border: "none",
                                                     padding: "8px",
