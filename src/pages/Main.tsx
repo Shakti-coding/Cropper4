@@ -1,14 +1,9 @@
+
 import {useEffect, useRef, useState} from "react";
 import "../App.css";
 import Cropper from "../component/Cropper";
 import Select from "../component/Select";
 import About from "../component/About";
-import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { App } from '@capacitor/app';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { SplashScreen } from '@capacitor/splash-screen';
-
 
 const cropSizePresets = [
     {name: "Custom", value: null},
@@ -68,7 +63,7 @@ function Main({ appName, aboutText } :any) {
         isActive: true
     }]);
     const [activeTabId, setActiveTabId] = useState('tab-1');
-
+    
     // Current tab data
     const activeTab = tabs.find(tab => tab.id === activeTabId) || tabs[0];
     const [files, setFiles] = useState<any[]>(activeTab.files);
@@ -79,53 +74,23 @@ function Main({ appName, aboutText } :any) {
     const [lockMovement, setLockMovement] = useState(activeTab.settings.lockMovement);
     const [centerCrop, setCenterCrop] = useState(activeTab.settings.centerCrop);
     const [enableOCR, setEnableOCR] = useState(activeTab.settings.enableOCR);
-
+    
     // Selection and UI states
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [holdTimer, setHoldTimer] = useState<any>(null);
     const [croppedImages, setCroppedImages] = useState<any>({});
     const [gridView, setGridView] = useState(true);
     const [currentView, setCurrentView] = useState<'crop' | 'history'>('crop');
-
+    
     // Processing and history
     const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [editingTabId, setEditingTabId] = useState<string | null>(null);
     const [editingTabName, setEditingTabName] = useState<string>('');
-    const [isMobile, setIsMobile] = useState(false);
-
+    
     const inputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const globalCropTimeout = useRef<any>(null);
-
-    // Initialize mobile features
-    useEffect(() => {
-        const initMobile = async () => {
-            if (Capacitor.isNativePlatform()) {
-                setIsMobile(true);
-
-                // Hide splash screen
-                await SplashScreen.hide();
-
-                // Set status bar style
-                await StatusBar.setStyle({ style: Style.Dark });
-
-                // Handle app state changes
-                App.addListener('appStateChange', ({ isActive }) => {
-                    console.log('App state changed. Is active:', isActive);
-                });
-
-                // Handle back button on Android
-                App.addListener('backButton', ({ canGoBack }) => {
-                    if (!canGoBack) {
-                        App.exitApp();
-                    }
-                });
-            }
-        };
-
-        initMobile();
-    }, []);
 
     // Cleanup timeouts on unmount
     useEffect(() => {
@@ -138,7 +103,7 @@ function Main({ appName, aboutText } :any) {
 
     // Update active tab when switching
     useEffect(() => {
-        const tab = tabs.find(t => t.id === activeTabId) || tabs[0];
+        const tab = tabs.find(t => t.id === activeTabId);
         if (tab) {
             setFiles(tab.files);
             setCrops(tab.crops);
@@ -177,7 +142,7 @@ function Main({ appName, aboutText } :any) {
         const timeoutId = setTimeout(() => {
             saveCurrentTabState();
         }, 100); // Debounce by 100ms
-
+        
         return () => clearTimeout(timeoutId);
     }, [files, crops, cropSize, keepRatio, resizeOnExport, lockMovement, centerCrop, enableOCR]);
 
@@ -198,14 +163,14 @@ function Main({ appName, aboutText } :any) {
             },
             isActive: true
         };
-
+        
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
     };
 
     const closeTab = (tabId: string) => {
         if (tabs.length === 1) return; // Don't close last tab
-
+        
         setTabs(prev => {
             const filtered = prev.filter(t => t.id !== tabId);
             if (tabId === activeTabId && filtered.length > 0) {
@@ -403,49 +368,17 @@ function Main({ appName, aboutText } :any) {
         };
     };
 
-    const downloadFile = async (url: string, filename: string) => {
-        if (Capacitor.isNativePlatform()) {
-            try {
-                // Convert data URL to base64
-                const base64Data = url.split(',')[1];
-
-                // Write file to device storage
-                await Filesystem.writeFile({
-                    path: `Downloads/${filename}`,
-                    data: base64Data,
-                    directory: Directory.Documents
-                });
-
-                alert(`File saved to Documents/Downloads/${filename}`);
-            } catch (error) {
-                console.error('Error saving file:', error);
-                // Fallback to web download
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }
-        } else {
-            // Web download
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-    };
-
     const onSaveCropped = () => {
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         indicesToSave.forEach((index: number) => {
             const crop = crops[index];
             if (crop) {
                 const croppedImage = generateCroppedImage(crop, index);
-                downloadFile(croppedImage.dataUrl, croppedImage.filename);
+                const link = document.createElement('a');
+                link.download = croppedImage.filename;
+                link.href = croppedImage.dataUrl;
+                link.click();
             }
         });
     };
@@ -453,7 +386,7 @@ function Main({ appName, aboutText } :any) {
     const onSaveAsZip = async () => {
         const jobId = `zip-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         const newJob: ProcessingJob = {
             id: jobId,
             name: `ZIP Export (${indicesToSave.length} images)`,
@@ -478,7 +411,7 @@ function Main({ appName, aboutText } :any) {
                         const croppedImage = generateCroppedImage(crop, index);
                         const base64Data = croppedImage.dataUrl.split(',')[1];
                         zip.file(croppedImage.filename, base64Data, { base64: true });
-
+                        
                         setProcessingJobs(prev => prev.map(job => 
                             job.id === jobId ? { ...job, progress: i + 1 } : job
                         ));
@@ -489,16 +422,18 @@ function Main({ appName, aboutText } :any) {
             }
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const zipUrl = URL.createObjectURL(zipBlob);
-            downloadFile(zipUrl, `cropped_images_${new Date().toISOString().slice(0, 10)}.zip`);
-
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(zipBlob);
+            link.download = `cropped_images_${new Date().toISOString().slice(0, 10)}.zip`;
+            link.click();
+            
             // Clean up URL after a delay
             setTimeout(() => {
-                URL.revokeObjectURL(zipUrl);
+                URL.revokeObjectURL(link.href);
             }, 100);
 
             setProcessingJobs(prev => prev.map(job => 
-                job.id === jobId ? { ...job, status: 'completed', result: { filename: `cropped_images_${new Date().toISOString().slice(0, 10)}.zip` } } : job
+                job.id === jobId ? { ...job, status: 'completed', result: { filename: link.download } } : job
             ));
 
             // Add to history
@@ -524,7 +459,7 @@ function Main({ appName, aboutText } :any) {
     const onGeneratePDF = async () => {
         const jobId = `pdf-${Date.now()}`;
         const indicesToSave = selectedFiles.size > 0 ? Array.from(selectedFiles) : Object.keys(crops).map(Number);
-
+        
         const newJob: ProcessingJob = {
             id: jobId,
             name: `PDF Export (${indicesToSave.length} images)`,
@@ -667,7 +602,7 @@ function Main({ appName, aboutText } :any) {
             settings: historyItem.settings,
             isActive: true
         };
-
+        
         setTabs(prev => [...prev.map(t => ({...t, isActive: false})), newTab]);
         setActiveTabId(newTabId);
         setCurrentView('crop');
@@ -1023,7 +958,7 @@ function Main({ appName, aboutText } :any) {
                     </div>
 
                     <>
-
+                        
 
                         <div style={{
                             display: gridView ? "grid" : "flex", 
@@ -1047,7 +982,7 @@ function Main({ appName, aboutText } :any) {
                                             className="select-some-files"
                                             style={{fontSize: "1.2em", margin: "10px 0"}}
                                         >📁 Or select a folder with images</h2>
-
+                                        
                                         <div style={{
                                             background: "rgba(0,0,0,0.7)", 
                                             padding: "15px", 
