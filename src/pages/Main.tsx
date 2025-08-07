@@ -413,8 +413,7 @@ function Main({ appName, aboutText } :any) {
                 await Filesystem.writeFile({
                     path: `Downloads/${filename}`,
                     data: base64Data,
-                    directory: Directory.Documents,
-                    encoding: Encoding.Base64
+                    directory: Directory.Documents
                 });
 
                 alert(`File saved to Documents/Downloads/${filename}`);
