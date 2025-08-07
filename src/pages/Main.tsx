@@ -90,6 +90,7 @@ function Main({ appName, aboutText } :any) {
     const [editingTabName, setEditingTabName] = useState<string>('');
     
     const inputRef = useRef<HTMLInputElement>(null);
+    const folderInputRef = useRef<HTMLInputElement>(null);
     const globalCropTimeout = useRef<any>(null);
     const IMAGES_PER_PAGE = 6;
 
@@ -208,10 +209,12 @@ function Main({ appName, aboutText } :any) {
     };
 
     const onSetFiles = (input: Array<any>) => {
-        const newFiles = input ? Object.values(input) : [];
-        if (newFiles.length === 0) return;
-        console.log("set new files", { input, files, newFiles });
-        setFiles(prev => newFiles.length > 0 ? ([...prev, ...newFiles]) : newFiles);
+        const allFiles = input ? Object.values(input) : [];
+        // Filter only image files
+        const imageFiles = allFiles.filter((file: File) => file.type.startsWith('image/'));
+        if (imageFiles.length === 0) return;
+        console.log("set new files", { input, files, newFiles: imageFiles });
+        setFiles(prev => imageFiles.length > 0 ? ([...prev, ...imageFiles]) : imageFiles);
     };
 
     const onRemoveImage = (index: number) => {
@@ -615,6 +618,10 @@ function Main({ appName, aboutText } :any) {
         inputRef?.current?.click();
     };
 
+    const onSelectFolder = () => {
+        folderInputRef?.current?.click();
+    };
+
     return (
         <div style={{overflow: "auto", width: "100%", height: "100vh",
             padding: "0 0 4 0",
@@ -816,7 +823,8 @@ function Main({ appName, aboutText } :any) {
                             {files.length > 0 && (
                                 <>
                                     <div title={files.length + " files"}>{files.length} files</div>
-                                    <button onClick={onSelectSomeFiles} className="button">Add</button>
+                                    <button onClick={onSelectSomeFiles} className="button">Add Files</button>
+                                    <button onClick={onSelectFolder} className="button">📁 Add Folder</button>
                                     {selectedFiles.size > 0 && (
                                         <>
                                             <div style={{color: "#4CAF50"}}>✓ {selectedFiles.size} selected</div>
@@ -834,6 +842,18 @@ function Main({ appName, aboutText } :any) {
                                     onSetFiles(e.target.files);
                                 }}
                                 ref={inputRef}
+                                className="file-input"
+                                style={{display: "none"}}
+                            />
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                webkitdirectory=""
+                                onChange={(e: any) => {
+                                    onSetFiles(e.target.files);
+                                }}
+                                ref={folderInputRef}
                                 className="file-input"
                                 style={{display: "none"}}
                             />
@@ -921,9 +941,15 @@ function Main({ appName, aboutText } :any) {
                         }}>
                             {files.length === 0 && (
                                 <About aboutText={aboutText} appName={appName}>
-                                    <h1 onClick={onSelectSomeFiles}
-                                        className="select-some-files"
-                                    >📸 Select some files (supports 100+ images)</h1>
+                                    <div style={{display: "flex", flexDirection: "column", gap: "10px", alignItems: "center"}}>
+                                        <h1 onClick={onSelectSomeFiles}
+                                            className="select-some-files"
+                                        >📸 Select some files (supports 100+ images)</h1>
+                                        <h2 onClick={onSelectFolder}
+                                            className="select-some-files"
+                                            style={{fontSize: "1.2em", margin: "10px 0"}}
+                                        >📁 Or select a folder with images</h2>
+                                    </div>
                                 </About>
                             )}
                             {files
