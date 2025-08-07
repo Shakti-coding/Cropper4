@@ -14,9 +14,10 @@ interface Props {
   lockMovement: any
   centerCrop: any
   onGlobalCropChange: any
+  rearrangeMode?: boolean
 }
 
-const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onSetCropped, onRemoveImage, keepRatio, lockMovement, centerCrop, onGlobalCropChange }) => {
+const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onSetCropped, onRemoveImage, keepRatio, lockMovement, centerCrop, onGlobalCropChange, rearrangeMode = false }) => {
   const crop = crops[index];
   const onSetCrops = (newCropSize: any = null) => {
     if(newCropSize == null) return;
@@ -89,7 +90,8 @@ const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onS
                 src={imageToCrop}
                 onImageLoaded={onImageLoaded}
                 crop={crop}
-                onChange={onSetCrops}
+                onChange={rearrangeMode ? undefined : onSetCrops}
+                disabled={rearrangeMode}
             />
       </div>
   );

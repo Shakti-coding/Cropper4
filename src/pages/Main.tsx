@@ -325,6 +325,8 @@ function Main({ appName, aboutText } :any) {
     const [enableWatermark, setEnableWatermark] = useState<boolean>(false);
     const [enableBorder, setEnableBorder] = useState<boolean>(false);
     const [enableSignature, setEnableSignature] = useState<boolean>(false);
+    const [rearrangeMode, setRearrangeMode] = useState<boolean>(false);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
@@ -1415,6 +1417,61 @@ function Main({ appName, aboutText } :any) {
         return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        if (!rearrangeMode) return;
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        if (!rearrangeMode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        if (!rearrangeMode || draggedIndex === null) return;
+        e.preventDefault();
+        
+        if (draggedIndex !== dropIndex) {
+            const newFiles = [...files];
+            const draggedFile = newFiles[draggedIndex];
+            newFiles.splice(draggedIndex, 1);
+            newFiles.splice(dropIndex, 0, draggedFile);
+            
+            // Update crops object to match new order
+            const newCrops: any = {};
+            Object.keys(crops).forEach((oldIndex) => {
+                const oldIdx = parseInt(oldIndex);
+                let newIdx = oldIdx;
+                
+                if (oldIdx === draggedIndex) {
+                    newIdx = dropIndex;
+                } else if (draggedIndex < dropIndex && oldIdx > draggedIndex && oldIdx <= dropIndex) {
+                    newIdx = oldIdx - 1;
+                } else if (draggedIndex > dropIndex && oldIdx >= dropIndex && oldIdx < draggedIndex) {
+                    newIdx = oldIdx + 1;
+                }
+                
+                if (crops[oldIndex]) {
+                    newCrops[newIdx] = crops[oldIndex];
+                }
+            });
+            
+            setFiles(newFiles);
+            setCrops(newCrops);
+        }
+        setDraggedIndex(null);
+    };
+
+    const toggleRearrangeMode = () => {
+        setRearrangeMode(!rearrangeMode);
+        if (rearrangeMode) {
+            // Save arrangement when exiting rearrange mode
+            saveCurrentTabState();
+        }
+    };
+
     const getProcessedCount = () => {
         return Object.keys(crops).filter(key => crops[key]?.width && crops[key]?.height).length;
     };
@@ -1674,6 +1731,10 @@ function Main({ appName, aboutText } :any) {
                                         <input type="checkbox" checked={centerCrop} readOnly />
                                         <div className="box-bg">🎯 Center Crop</div>
                                     </div>
+                                    <div onClick={toggleRearrangeMode} className="checkbox" title="Enable drag to rearrange image order">
+                                        <input type="checkbox" checked={rearrangeMode} readOnly />
+                                        <div className="box-bg">🔄 Rearrange</div>
+                                    </div>
                                     <button 
                                         className={`quality-toggle-btn ${showQualityPanel ? 'active' : ''}`}
                                         onClick={() => {
@@ -1787,10 +1848,16 @@ function Main({ appName, aboutText } :any) {
                                     <div key={file?.name + actualIndex} 
                                          style={{
                                              position: "relative",
-                                             border: isSelected ? "3px solid #4CAF50" : "none",
-                                             borderRadius: "0.5rem"
+                                             border: isSelected ? "3px solid #4CAF50" : rearrangeMode && draggedIndex === actualIndex ? "3px solid #2196F3" : rearrangeMode ? "2px dashed #888" : "none",
+                                             borderRadius: "0.5rem",
+                                             cursor: rearrangeMode ? "move" : "default",
+                                             opacity: rearrangeMode && draggedIndex === actualIndex ? 0.5 : 1
                                          }}
-                                         onMouseDown={() => handleMouseDown(actualIndex)}
+                                         draggable={rearrangeMode}
+                                         onDragStart={(e) => handleDragStart(e, actualIndex)}
+                                         onDragOver={handleDragOver}
+                                         onDrop={(e) => handleDrop(e, actualIndex)}
+                                         onMouseDown={() => !rearrangeMode && handleMouseDown(actualIndex)}
                                          onMouseUp={handleMouseUp}
                                          onMouseLeave={handleMouseUp}
                                     >
@@ -1825,6 +1892,7 @@ function Main({ appName, aboutText } :any) {
                                             lockMovement={lockMovement}
                                             centerCrop={centerCrop}
                                             onGlobalCropChange={onGlobalCropChange}
+                                            rearrangeMode={rearrangeMode}
                                         />
                                     </div>
                                 );
