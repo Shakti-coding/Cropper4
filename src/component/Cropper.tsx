@@ -1,4 +1,4 @@
-import {useState, useEffect, useMemo} from "react";
+import {useEffect, useMemo} from "react";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -71,12 +71,39 @@ const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onS
   }
 
   const cropperInfo = crop ? `W:${crop.width} H:${crop.height}  x:${crop.x} y:${crop.y}`: "";
+  
+  // Create a no-op function for rearrange mode to satisfy ReactCrop's onChange requirement
+  const handleCropChange = rearrangeMode ? () => {} : onSetCrops;
+  
   return (
       <div style={{borderRadius: "0.5rem", overflow: "hidden",
         flexShrink: 0,
+        position: "relative"
       }} className="cropper"
            title={file?.name}
       >
+        {/* Serial Number Badge */}
+        <div style={{
+          position: "absolute",
+          top: "5px",
+          left: "5px",
+          background: rearrangeMode ? "#2196F3" : "#333",
+          color: "white",
+          borderRadius: "50%",
+          width: "30px",
+          height: "30px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 200,
+          fontSize: "14px",
+          fontWeight: "bold",
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+        }}>
+          {index + 1}
+        </div>
+        
         <div className="cropper-header">
           <div className="cropper-filename">{file?.name}</div>
           {crop != null && <div className="cropper-info" title={cropperInfo}>{cropperInfo}</div>}
@@ -90,7 +117,7 @@ const Cropper: React.FC<Props> = ({  crops, setCrops, cropSize, file, index, onS
                 src={imageToCrop}
                 onImageLoaded={onImageLoaded}
                 crop={crop}
-                onChange={rearrangeMode ? undefined : onSetCrops}
+                onChange={handleCropChange}
                 disabled={rearrangeMode}
             />
       </div>

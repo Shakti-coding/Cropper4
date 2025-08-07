@@ -1850,16 +1850,35 @@ function Main({ appName, aboutText } :any) {
                                              position: "relative",
                                              border: isSelected ? "3px solid #4CAF50" : rearrangeMode && draggedIndex === actualIndex ? "3px solid #2196F3" : rearrangeMode ? "2px dashed #888" : "none",
                                              borderRadius: "0.5rem",
-                                             cursor: rearrangeMode ? "move" : "default",
-                                             opacity: rearrangeMode && draggedIndex === actualIndex ? 0.5 : 1
+                                             cursor: rearrangeMode ? "grab" : "default",
+                                             opacity: rearrangeMode && draggedIndex === actualIndex ? 0.5 : 1,
+                                             transform: rearrangeMode && draggedIndex === actualIndex ? "scale(0.95)" : "scale(1)",
+                                             transition: "all 0.2s ease",
+                                             background: rearrangeMode ? "rgba(33, 150, 243, 0.1)" : "transparent"
                                          }}
                                          draggable={rearrangeMode}
                                          onDragStart={(e) => handleDragStart(e, actualIndex)}
                                          onDragOver={handleDragOver}
                                          onDrop={(e) => handleDrop(e, actualIndex)}
-                                         onMouseDown={() => !rearrangeMode && handleMouseDown(actualIndex)}
-                                         onMouseUp={handleMouseUp}
-                                         onMouseLeave={handleMouseUp}
+                                         onMouseDown={(e) => {
+                                             if (rearrangeMode) {
+                                                 e.currentTarget.style.cursor = "grabbing";
+                                             } else {
+                                                 handleMouseDown(actualIndex);
+                                             }
+                                         }}
+                                         onMouseUp={(e) => {
+                                             if (rearrangeMode) {
+                                                 e.currentTarget.style.cursor = "grab";
+                                             }
+                                             handleMouseUp();
+                                         }}
+                                         onMouseLeave={(e) => {
+                                             if (rearrangeMode) {
+                                                 e.currentTarget.style.cursor = "grab";
+                                             }
+                                             handleMouseUp();
+                                         }}
                                     >
                                         {isSelected && (
                                             <div style={{
