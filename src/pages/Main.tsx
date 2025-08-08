@@ -49,13 +49,13 @@ interface CropTab {
 }
 
 // Draggable Panel Component
-const DraggablePanel = ({ 
-    title, 
-    onClose, 
-    children, 
-    initialPosition, 
-    initialSize, 
-    borderColor = '#007bff' 
+const DraggablePanel = ({
+    title,
+    onClose,
+    children,
+    initialPosition,
+    initialSize,
+    borderColor = '#007bff'
 }: {
     title: string;
     onClose: () => void;
@@ -149,7 +149,7 @@ const DraggablePanel = ({
     };
 
     return (
-        <div 
+        <div
             style={{
                 position: 'fixed',
                 left: `${position.x}px`,
@@ -168,7 +168,7 @@ const DraggablePanel = ({
             }}
         >
             {/* Header with drag handle */}
-            <div 
+            <div
                 onMouseDown={handleMouseDown}
                 style={{
                     background: borderColor,
@@ -185,7 +185,7 @@ const DraggablePanel = ({
             >
                 <span>{title}</span>
                 <div className="no-drag" style={{ display: 'flex', gap: '5px' }}>
-                    <button 
+                    <button
                         onClick={() => setIsMinimized(!isMinimized)}
                         style={{
                             background: 'none',
@@ -199,7 +199,7 @@ const DraggablePanel = ({
                     >
                         {isMinimized ? '🔼' : '🔽'}
                     </button>
-                    <button 
+                    <button
                         onClick={onClose}
                         style={{
                             background: 'none',
@@ -218,7 +218,7 @@ const DraggablePanel = ({
 
             {/* Content */}
             {!isMinimized && (
-                <div 
+                <div
                     style={{
                         flex: 1,
                         overflowY: 'auto',
@@ -358,8 +358,8 @@ function Main({ appName, aboutText } :any) {
 
     // Save current tab state
     const saveCurrentTabState = () => {
-        setTabs(prev => prev.map(tab => 
-            tab.id === activeTabId 
+        setTabs(prev => prev.map(tab =>
+            tab.id === activeTabId
                 ? {
                     ...tab,
                     files,
@@ -427,8 +427,8 @@ function Main({ appName, aboutText } :any) {
 
     const saveTabName = () => {
         if (editingTabId && editingTabName.trim()) {
-            setTabs(prev => prev.map(tab => 
-                tab.id === editingTabId 
+            setTabs(prev => prev.map(tab =>
+                tab.id === editingTabId
                     ? { ...tab, name: editingTabName.trim() }
                     : tab
             ));
@@ -454,8 +454,8 @@ function Main({ appName, aboutText } :any) {
 
         // Remove duplicates based on file name and size
         const uniqueFiles = imageFiles.filter((newFile: File) => {
-            return !files.some((existingFile: File) => 
-                existingFile.name === newFile.name && 
+            return !files.some((existingFile: File) =>
+                existingFile.name === newFile.name &&
                 existingFile.size === newFile.size &&
                 existingFile.lastModified === newFile.lastModified
             );
@@ -1157,7 +1157,7 @@ function Main({ appName, aboutText } :any) {
                         const base64Data = croppedImage.dataUrl.split(',')[1];
                         zip.file(croppedImage.filename, base64Data, { base64: true });
 
-                        setProcessingJobs(prev => prev.map(job => 
+                        setProcessingJobs(prev => prev.map(job =>
                             job.id === jobId ? { ...job, progress: i + 1 } : job
                         ));
                     } catch (imageError) {
@@ -1177,7 +1177,7 @@ function Main({ appName, aboutText } :any) {
                 URL.revokeObjectURL(link.href);
             }, 100);
 
-            setProcessingJobs(prev => prev.map(job => 
+            setProcessingJobs(prev => prev.map(job =>
                 job.id === jobId ? { ...job, status: 'completed', result: { filename: link.download } } : job
             ));
 
@@ -1195,7 +1195,7 @@ function Main({ appName, aboutText } :any) {
 
         } catch (error) {
             console.error('Error creating ZIP:', error);
-            setProcessingJobs(prev => prev.map(job => 
+            setProcessingJobs(prev => prev.map(job =>
                 job.id === jobId ? { ...job, status: 'error' } : job
             ));
         }
@@ -1304,7 +1304,7 @@ function Main({ appName, aboutText } :any) {
                     console.warn(`Failed to process image ${index}:`, imageError);
                 }
 
-                setProcessingJobs(prev => prev.map(job => 
+                setProcessingJobs(prev => prev.map(job =>
                     job.id === jobId ? { ...job, progress: i + 1 } : job
                 ));
             }
@@ -1313,7 +1313,7 @@ function Main({ appName, aboutText } :any) {
             const filename = `${tabName}_${new Date().toISOString().slice(0, 10)}.pdf`;
             pdf.save(filename);
 
-            setProcessingJobs(prev => prev.map(job => 
+            setProcessingJobs(prev => prev.map(job =>
                 job.id === jobId ? { ...job, status: 'completed', result: { filename } } : job
             ));
 
@@ -1331,7 +1331,7 @@ function Main({ appName, aboutText } :any) {
 
         } catch (error) {
             console.error('Error creating PDF:', error);
-            setProcessingJobs(prev => prev.map(job => 
+            setProcessingJobs(prev => prev.map(job =>
                 job.id === jobId ? { ...job, status: 'error' } : job
             ));
         }
@@ -1470,10 +1470,10 @@ function Main({ appName, aboutText } :any) {
             const newCrops: any = { ...crops };
             const fromCrop = newCrops[fromIndex];
             const toCrop = newCrops[toIndex];
-            
+
             if (fromCrop) newCrops[toIndex] = fromCrop;
             else delete newCrops[toIndex];
-            
+
             if (toCrop) newCrops[fromIndex] = toCrop;
             else delete newCrops[fromIndex];
 
@@ -1507,13 +1507,13 @@ function Main({ appName, aboutText } :any) {
     const goToNextPreviewImage = () => {
         const croppedImageKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
         if (croppedImageKeys.length === 0) return;
-        
+
         const currentKeyIndex = croppedImageKeys.indexOf(currentPreviewIndex.toString());
         const nextIndex = currentKeyIndex < croppedImageKeys.length - 1 ? currentKeyIndex + 1 : 0;
         const nextImageIndex = parseInt(croppedImageKeys[nextIndex]);
-        
+
         setCurrentPreviewIndex(nextImageIndex);
-        
+
         // Generate preview for the next image
         const crop = crops[nextImageIndex];
         if (crop) {
@@ -1525,13 +1525,13 @@ function Main({ appName, aboutText } :any) {
     const goToPrevPreviewImage = () => {
         const croppedImageKeys = Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height);
         if (croppedImageKeys.length === 0) return;
-        
+
         const currentKeyIndex = croppedImageKeys.indexOf(currentPreviewIndex.toString());
         const prevIndex = currentKeyIndex > 0 ? currentKeyIndex - 1 : croppedImageKeys.length - 1;
         const prevImageIndex = parseInt(croppedImageKeys[prevIndex]);
-        
+
         setCurrentPreviewIndex(prevImageIndex);
-        
+
         // Generate preview for the previous image
         const crop = crops[prevImageIndex];
         if (crop) {
@@ -1551,10 +1551,10 @@ function Main({ appName, aboutText } :any) {
         }}>
             {/* Tab Bar */}
             <div style={{
-                display: "flex", 
-                gap: "2px", 
-                padding: "5px", 
-                background: "rgba(0,0,0,0.8)", 
+                display: "flex",
+                gap: "2px",
+                padding: "5px",
+                background: "rgba(0,0,0,0.8)",
                 borderBottom: "1px solid #333",
                 overflowX: "auto"
             }}>
@@ -1595,18 +1595,18 @@ function Main({ appName, aboutText } :any) {
                             </div>
                         ) : (
                             <>
-                                <span 
+                                <span
                                     onClick={() => setActiveTabId(tab.id)}
                                     style={{ cursor: "pointer" }}
                                 >
                                     {tab.name}
                                 </span>
-                                <button 
+                                <button
                                     onClick={() => startEditingTab(tab.id, tab.name)}
                                     style={{
-                                        background: "none", 
-                                        border: "none", 
-                                        color: "#888", 
+                                        background: "none",
+                                        border: "none",
+                                        color: "#888",
                                         cursor: "pointer",
                                         fontSize: "10px"
                                     }}
@@ -1615,12 +1615,12 @@ function Main({ appName, aboutText } :any) {
                                     ✏️
                                 </button>
                                 {tabs.length > 1 && (
-                                    <button 
+                                    <button
                                         onClick={() => closeTab(tab.id)}
                                         style={{
-                                            background: "none", 
-                                            border: "none", 
-                                            color: "#888", 
+                                            background: "none",
+                                            border: "none",
+                                            color: "#888",
                                             cursor: "pointer",
                                             fontSize: "12px"
                                         }}
@@ -1632,12 +1632,12 @@ function Main({ appName, aboutText } :any) {
                         )}
                     </div>
                 ))}
-                <button 
+                <button
                     onClick={addNewTab}
                     style={{
-                        background: "#333", 
-                        border: "none", 
-                        color: "white", 
+                        background: "#333",
+                        border: "none",
+                        color: "white",
                         padding: "5px 10px",
                         borderRadius: "3px",
                         cursor: "pointer"
@@ -1649,18 +1649,18 @@ function Main({ appName, aboutText } :any) {
 
             {/* View Toggle */}
             <div style={{
-                display: "flex", 
-                gap: "5px", 
-                padding: "5px", 
+                display: "flex",
+                gap: "5px",
+                padding: "5px",
                 background: "rgba(0,0,0,0.6)"
             }}>
-                <button 
+                <button
                     onClick={() => setCurrentView('crop')}
                     className={currentView === 'crop' ? 'export-button' : 'button'}
                 >
                     🖼️ Cropping
                 </button>
-                <button 
+                <button
                     onClick={() => setCurrentView('history')}
                     className={currentView === 'history' ? 'export-button' : 'button'}
                 >
@@ -1678,8 +1678,8 @@ function Main({ appName, aboutText } :any) {
                     <h4>Background Processing:</h4>
                     {processingJobs.map(job => (
                         <div key={job.id} style={{
-                            display: "flex", 
-                            justifyContent: "space-between", 
+                            display: "flex",
+                            justifyContent: "space-between",
                             alignItems: "center",
                             padding: "5px",
                             background: "rgba(255,255,255,0.1)",
@@ -1803,7 +1803,7 @@ function Main({ appName, aboutText } :any) {
                                         <input type="checkbox" checked={rearrangeMode} readOnly />
                                         <div className="box-bg">🔄 Rearrange</div>
                                     </div>
-                                    <button 
+                                    <button
                                         className={`quality-toggle-btn ${showQualityPanel ? 'active' : ''}`}
                                         onClick={() => {
                                             setShowQualityPanel(!showQualityPanel);
@@ -1891,11 +1891,11 @@ function Main({ appName, aboutText } :any) {
 
                     <div>
                         <div style={{
-                            display: gridView ? "grid" : "flex", 
+                            display: gridView ? "grid" : "flex",
                             gridTemplateColumns: gridView ? "repeat(auto-fit, minmax(300px, 1fr))" : "none",
-                            flexWrap: gridView ? "nowrap" : "wrap", 
-                            gap: "0.5rem", 
-                            padding: "0.5rem", 
+                            flexWrap: gridView ? "nowrap" : "wrap",
+                            gap: "0.5rem",
+                            padding: "0.5rem",
                             color: "white",
                             maxWidth: gridView ? "none" : "none",
                             margin: gridView ? "0" : "0",
@@ -1914,9 +1914,9 @@ function Main({ appName, aboutText } :any) {
                                         >📁 Or select a folder with images</h2>
 
                                         <div style={{
-                                            background: "rgba(0,0,0,0.7)", 
-                                            padding: "15px", 
-                                            borderRadius: "8px", 
+                                            background: "rgba(0,0,0,0.7)",
+                                            padding: "15px",
+                                            borderRadius: "8px",
                                             marginTop: "20px",
                                             border: "1px solid #333"
                                         }}>
@@ -1938,7 +1938,7 @@ function Main({ appName, aboutText } :any) {
                                 .map((file, actualIndex) => {
                                     const isSelected = selectedFiles.has(actualIndex);
                                 return file && (
-                                    <div key={file?.name + actualIndex} 
+                                    <div key={file?.name + actualIndex}
                                          style={{
                                              position: "relative",
                                              border: isSelected ? "3px solid #4CAF50" : rearrangeMode && draggedIndex === actualIndex ? "3px solid #2196F3" : rearrangeMode ? "2px dashed #888" : "none",
@@ -2140,7 +2140,7 @@ function Main({ appName, aboutText } :any) {
                                                 </button>
                                             </div>
                                         )}
-                                        <div style={{ 
+                                        <div style={{
                                             pointerEvents: rearrangeMode ? 'none' : 'auto',
                                             opacity: rearrangeMode ? 0.7 : 1,
                                             transition: 'opacity 0.3s ease'
@@ -2171,7 +2171,7 @@ function Main({ appName, aboutText } :any) {
 
             {/* Floating Preview Window */}
             {showFloatingPreview && previewImage && (
-                <div 
+                <div
                     style={{
                         position: 'fixed',
                         left: `${previewPosition.x}px`,
@@ -2188,7 +2188,7 @@ function Main({ appName, aboutText } :any) {
                         minHeight: '150px'
                     }}
                 >
-                    <div 
+                    <div
                         style={{
                             background: '#007bff',
                             color: 'white',
@@ -2221,7 +2221,7 @@ function Main({ appName, aboutText } :any) {
                         }}
                     >
                         <span>🖼️ Live Preview ({currentPreviewIndex + 1}/{Object.keys(crops).filter(key => crops[key] && crops[key].width && crops[key].height).length})</span>
-                        <button 
+                        <button
                             onClick={() => setShowFloatingPreview(false)}
                             style={{
                                 background: 'none',
@@ -2235,8 +2235,8 @@ function Main({ appName, aboutText } :any) {
                         </button>
                     </div>
                     <div style={{ padding: '10px', height: 'calc(100% - 40px)', overflow: 'hidden', position: 'relative' }}>
-                        <img 
-                            src={previewImage} 
+                        <img
+                            src={previewImage}
                             alt="Floating preview"
                             style={{
                                 width: '100%',
@@ -2433,7 +2433,7 @@ function Main({ appName, aboutText } :any) {
                         flexDirection: 'column',
                         alignItems: 'center'
                     }}>
-                        <button 
+                        <button
                             onClick={() => setShowPreviewPopup(false)}
                             style={{
                                 position: 'absolute',
@@ -2452,9 +2452,9 @@ function Main({ appName, aboutText } :any) {
                             ✕
                         </button>
                         <h3 style={{ color: 'black', marginBottom: '15px' }}>Quality Tools Preview</h3>
-                        <img 
-                            src={previewImage} 
-                            alt="Preview with effects" 
+                        <img
+                            src={previewImage}
+                            alt="Preview with effects"
                             style={{
                                 maxWidth: '100%',
                                 maxHeight: '70vh',
@@ -2464,7 +2464,7 @@ function Main({ appName, aboutText } :any) {
                             }}
                         />
                         <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                            <button 
+                            <button
                                 onClick={loadSavedAdjustments}
                                 style={{
                                     background: '#4CAF50',
@@ -2477,7 +2477,7 @@ function Main({ appName, aboutText } :any) {
                             >
                                 Load Saved Settings
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setShowPreviewPopup(false)}
                                 style={{
                                     background: '#007bff',
@@ -2579,7 +2579,7 @@ function Main({ appName, aboutText } :any) {
                         }}>
                             <h3 style={{margin: 0, fontSize: "14px", color: "#333"}}>🖼️ Live Preview</h3>
                             <div style={{ display: 'flex', gap: '5px' }}>
-                                <button 
+                                <button
                                     onClick={() => setShowFloatingPreview(!showFloatingPreview)}
                                     style={{
                                         background: "#007bff",
@@ -2593,7 +2593,7 @@ function Main({ appName, aboutText } :any) {
                                 >
                                     {showFloatingPreview ? '📌' : '🔄'}
                                 </button>
-                                <button 
+                                <button
                                     onClick={generateQualityPreview}
                                     style={{
                                         background: "#4CAF50",
@@ -2617,8 +2617,8 @@ function Main({ appName, aboutText } :any) {
                                 </div>
                             ) : previewImage ? (
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ 
-                                        position: 'relative', 
+                                    <div style={{
+                                        position: 'relative',
                                         display: 'inline-block',
                                         width: '100%',
                                         height: '120px',
@@ -2626,8 +2626,8 @@ function Main({ appName, aboutText } :any) {
                                         borderRadius: '5px',
                                         overflow: 'hidden'
                                     }}>
-                                        <img 
-                                            src={previewImage} 
+                                        <img
+                                            src={previewImage}
                                             alt="Preview"
                                             style={{
                                                 width: '100%',
@@ -2638,9 +2638,9 @@ function Main({ appName, aboutText } :any) {
                                         />
                                     </div>
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
-                                        <button 
+                                        <button
                                             onClick={handleSaveAdjustments}
-                                            style={{ 
+                                            style={{
                                                 flex: 1,
                                                 background: "#4CAF50",
                                                 color: "white",
@@ -2655,11 +2655,11 @@ function Main({ appName, aboutText } :any) {
                                             💾 Apply All
                                         </button>
                                         {Object.keys(originalCroppedImages).length > 0 && (
-                                            <button 
+                                            <button
                                                 onClick={handleUndoAdjustments}
-                                                style={{ 
+                                                style={{
                                                     flex: 1,
-                                                    background: '#f44336', 
+                                                    background: '#f44336',
                                                     color: 'white',
                                                     border: "none",
                                                     padding: "8px",
