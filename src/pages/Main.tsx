@@ -1146,8 +1146,12 @@ function Main({ appName, aboutText } :any) {
             const targetWidth = resizeImageToCrop.width || crop.width;
             const targetHeight = resizeImageToCrop.height || crop.height;
             
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
+            // Use high DPI for crisp rendering
+            const pixelRatio = window.devicePixelRatio || 1;
+            canvas.width = targetWidth * pixelRatio;
+            canvas.height = targetHeight * pixelRatio;
+            canvas.style.width = targetWidth + 'px';
+            canvas.style.height = targetHeight + 'px';
 
             const ctx = canvas.getContext("2d");
             if (!ctx) {
@@ -1159,6 +1163,8 @@ function Main({ appName, aboutText } :any) {
                 };
             }
 
+            // Scale context for high DPI
+            ctx.scale(pixelRatio, pixelRatio);
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = "high";
 
@@ -2387,7 +2393,9 @@ function Main({ appName, aboutText } :any) {
                             style={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'contain'
+                                objectFit: 'contain',
+                                imageRendering: 'crisp-edges',
+                                imageRendering: '-webkit-optimize-contrast'
                             }}
                         />
 
@@ -2778,7 +2786,9 @@ function Main({ appName, aboutText } :any) {
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'contain'
+                                                objectFit: 'contain',
+                                                imageRendering: 'crisp-edges',
+                                                imageRendering: '-webkit-optimize-contrast'
                                             }}
                                             draggable={false}
                                         />
