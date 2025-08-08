@@ -622,13 +622,14 @@ function Main({ appName, aboutText } :any) {
     const addWatermark = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableWatermark || !watermarkText?.trim()) return;
 
-        const fontSize = Math.max(canvas.width / 20, 16);
+        const fontSize = Math.max(canvas.width / 25, 14);
         ctx.font = `${fontSize}px Arial`;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.lineWidth = 1;
 
-        const textWidth = ctx.measureText(watermarkText).width;
+        const textMetrics = ctx.measureText(watermarkText);
+        const textWidth = textMetrics.width;
         const x = canvas.width - textWidth - 20;
         const y = canvas.height - 20;
 
@@ -641,19 +642,19 @@ function Main({ appName, aboutText } :any) {
 
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = borderWidth;
-        ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
+        const halfWidth = borderWidth / 2;
+        ctx.strokeRect(halfWidth, halfWidth, canvas.width - borderWidth, canvas.height - borderWidth);
     };
 
     const addSignature = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
         if (!enableSignature || !signatureText?.trim()) return;
 
-        const fontSize = Math.max(canvas.width / 25, 12);
+        const fontSize = Math.max(canvas.width / 30, 12);
         ctx.font = `${fontSize}px cursive`;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 0.5;
 
-        const textWidth = ctx.measureText(signatureText).width;
         const x = 20;
         const y = canvas.height - 20;
 
@@ -756,11 +757,28 @@ function Main({ appName, aboutText } :any) {
         const firstCropKey = Object.keys(crops)[0];
 
         if (firstCropKey && crops[firstCropKey]) {
-            // Generate cropped image for preview
+            // Generate cropped image for preview with effects applied
             const crop = crops[firstCropKey];
-            const croppedImage = generateEnhancedCroppedImage(crop, parseInt(firstCropKey));
-            setQualityPreviewImage(croppedImage.dataUrl);
-        } else if (files.length > 0) {
+            try {
+                const croppedImage = generateEnhancedCroppedImage(crop, parseInt(firstCropKey));
+                if (croppedImage && croppedImage.dataUrl) {
+                    setQualityPreviewImage(croppedImage.dataUrl);
+                    setCurrentPreviewIndex(parseInt(firstCropKey));
+                } else {
+                    console.warn('Failed to generate cropped image for preview');
+                    generateFallbackPreview();
+                }
+            } catch (error) {
+                console.error('Error generating quality preview:', error);
+                generateFallbackPreview();
+            }
+        } else {
+            generateFallbackPreview();
+        }
+    };
+
+    const generateFallbackPreview = () => {
+        if (files.length > 0) {
             // Fallback to original image if no crops exist yet
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -1098,97 +1116,125 @@ function Main({ appName, aboutText } :any) {
 
     // Enhanced version that applies all effects consistently
     const generateEnhancedCroppedImage = (crop: any, index: number) => {
-        const resizeImageToCrop = resizeOnExport && cropSize != null && cropSize.width === cropSize.height ? cropSize : crop;
-        const image = crop?.image;
-        if (!image || !image.naturalWidth || !image.naturalHeight) {
-            console.error('Invalid image data for crop:', crop, index);
+        try {
+            const resizeImageToCrop = resizeOnExport && cropSize != null && cropSize.width === cropSize.height ? cropSize : crop;
+            const image = crop?.image;
+            
+            if (!image || !image.naturalWidth || !image.naturalHeight) {
+                console.error('Invalid image data for crop:', crop, index);
+                return {
+                    canvas: null,
+                    dataUrl: '',
+                    filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
+                };
+            }
+
+            if (!crop.width || !crop.height) {
+                console.error('Invalid crop dimensions:', crop);
+                return {
+                    canvas: null,
+                    dataUrl: '',
+                    filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
+                };
+            }
+
+            const canvas = document.createElement("canvas");
+            const scaleX = image.naturalWidth / image.width;
+            const scaleY = image.naturalHeight / image.height;
+
+            // Use consistent sizing for better quality
+            const targetWidth = resizeImageToCrop.width || crop.width;
+            const targetHeight = resizeImageToCrop.height || crop.height;
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+                console.error('Failed to get canvas context');
+                return {
+                    canvas: null,
+                    dataUrl: '',
+                    filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
+                };
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+
+            // Apply transformations before drawing - consistent with preview
+            let filterString = '';
+            if (selectedFilter) {
+                filterString += selectedFilter.cssFilter;
+            }
+            if (adjustmentValues) {
+                const filters = [];
+                if (adjustmentValues.brightness !== 0) {
+                    filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
+                }
+                if (adjustmentValues.contrast !== 0) {
+                    filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
+                }
+                if (adjustmentValues.saturation !== 0) {
+                    filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
+                }
+                if (adjustmentValues.hue !== 0) {
+                    filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
+                }
+                if (adjustmentValues.blur !== 0) {
+                    filters.push(`blur(${adjustmentValues.blur}px)`);
+                }
+                if (adjustmentValues.sharpen !== 0) {
+                    filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
+                }
+                filterString += (filterString ? ' ' : '') + filters.join(' ');
+            }
+
+            ctx.filter = filterString || 'none';
+
+            ctx.drawImage(
+                image,
+                crop.x * scaleX,
+                crop.y * scaleY,
+                crop.width * scaleX,
+                crop.height * scaleY,
+                0,
+                0,
+                targetWidth,
+                targetHeight
+            );
+
+            // Reset filter for overlays
+            ctx.filter = 'none';
+
+            // Add watermark if enabled
+            if (enableWatermark && watermarkText && watermarkText.trim()) {
+                addWatermark(canvas, ctx);
+            }
+
+            // Add border if enabled
+            if (enableBorder && borderWidth > 0) {
+                addBorder(canvas, ctx);
+            }
+
+            // Add signature if enabled
+            if (enableSignature && signatureText && signatureText.trim()) {
+                addSignature(canvas, ctx);
+            }
+
+            return {
+                canvas,
+                dataUrl: canvas.toDataURL("image/png"),
+                filename: crop?.name || `cropped_${String(index + 1).padStart(3, '0')}.png`
+            };
+        } catch (error) {
+            console.error('Error in generateEnhancedCroppedImage:', error);
             return {
                 canvas: null,
                 dataUrl: '',
                 filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
             };
         }
-        const canvas = document.createElement("canvas");
-        const scaleX = image.naturalWidth / image.width;
-        const scaleY = image.naturalHeight / image.height;
-
-        const pixelRatio = Math.max(window.devicePixelRatio * 2, 4);
-        canvas.width = resizeImageToCrop.width * pixelRatio;
-        canvas.height = resizeImageToCrop.height * pixelRatio;
-
-        const ctx: any = canvas.getContext("2d");
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.textRenderingOptimization = "optimizeQuality";
-
-        ctx.scale(pixelRatio, pixelRatio);
-
-        // Apply transformations before drawing - consistent with preview
-        let filterString = '';
-        if (selectedFilter) {
-            filterString += selectedFilter.cssFilter;
-        }
-        if (adjustmentValues) {
-            const filters = [];
-            if (adjustmentValues.brightness !== 0) {
-                filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
-            }
-            if (adjustmentValues.contrast !== 0) {
-                filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
-            }
-            if (adjustmentValues.saturation !== 0) {
-                filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
-            }
-            if (adjustmentValues.hue !== 0) {
-                filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
-            }
-            if (adjustmentValues.blur !== 0) {
-                filters.push(`blur(${adjustmentValues.blur}px)`);
-            }
-            if (adjustmentValues.sharpen !== 0) {
-                filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
-            }
-            filterString += (filterString ? ' ' : '') + filters.join(' ');
-        }
-
-        ctx.filter = filterString || 'none';
-
-        ctx.drawImage(
-            image,
-            crop.x * scaleX,
-            crop.y * scaleY,
-            crop.width * scaleX,
-            crop.height * scaleY,
-            0,
-            0,
-            resizeImageToCrop.width,
-            resizeImageToCrop.height
-        );
-
-        // Reset filter for overlays
-        ctx.filter = 'none';
-
-        // Add watermark if enabled
-        if (enableWatermark && watermarkText && watermarkText.trim()) {
-            addWatermark(canvas, ctx);
-        }
-
-        // Add border if enabled
-        if (enableBorder && borderWidth > 0) {
-            addBorder(canvas, ctx);
-        }
-
-        // Add signature if enabled
-        if (enableSignature && signatureText && signatureText.trim()) {
-            addSignature(canvas, ctx);
-        }
-
-        return {
-            canvas,
-            dataUrl: canvas.toDataURL("image/png"),
-            filename: crop?.name || `cropped_${String(index + 1).padStart(3, '0')}.png`
-        };
     };
 
     const onSaveCropped = () => {
@@ -1603,8 +1649,15 @@ function Main({ appName, aboutText } :any) {
         // Generate preview for the next image with all effects applied
         const crop = crops[nextImageIndex];
         if (crop) {
-            const enhancedImage = generateEnhancedCroppedImage(crop, nextImageIndex);
-            setPreviewImage(enhancedImage.dataUrl);
+            try {
+                const enhancedImage = generateEnhancedCroppedImage(crop, nextImageIndex);
+                if (enhancedImage && enhancedImage.dataUrl) {
+                    setPreviewImage(enhancedImage.dataUrl);
+                    setQualityPreviewImage(enhancedImage.dataUrl);
+                }
+            } catch (error) {
+                console.error('Error generating next preview image:', error);
+            }
         }
     };
 
@@ -1621,8 +1674,15 @@ function Main({ appName, aboutText } :any) {
         // Generate preview for the previous image with all effects applied
         const crop = crops[prevImageIndex];
         if (crop) {
-            const enhancedImage = generateEnhancedCroppedImage(crop, prevImageIndex);
-            setPreviewImage(enhancedImage.dataUrl);
+            try {
+                const enhancedImage = generateEnhancedCroppedImage(crop, prevImageIndex);
+                if (enhancedImage && enhancedImage.dataUrl) {
+                    setPreviewImage(enhancedImage.dataUrl);
+                    setQualityPreviewImage(enhancedImage.dataUrl);
+                }
+            } catch (error) {
+                console.error('Error generating previous preview image:', error);
+            }
         }
     };
 
@@ -1635,7 +1695,6 @@ function Main({ appName, aboutText } :any) {
             padding: "0 0 4 0",
             background: "repeating-linear-gradient(45deg, rgb(10 10 10 / 90%), rgb(5 5 5 / 90%) 3px, rgb(0 0 0 / 90%) 3px, rgb(0 0 0 / 90%) 6px)"
         }}>
-            <React.Fragment>
             {/* Tab Bar */}
             <div style={{
                 display: "flex",
@@ -2770,7 +2829,6 @@ function Main({ appName, aboutText } :any) {
                     </div>
                 </>
             )}
-            </React.Fragment>
         </div>
     );
 }
