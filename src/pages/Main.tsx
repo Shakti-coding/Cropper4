@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import "../App.css";
 import Cropper from "../component/Cropper";
 import Select from "../component/Select";
@@ -973,7 +973,7 @@ function Main({ appName, aboutText } :any) {
     };
 
     // Make function available on window object
-    React.useEffect(() => {
+    useEffect(() => {
         (window as any).loadSavedAdjustments = loadSavedAdjustments;
         return () => {
             delete (window as any).loadSavedAdjustments;
@@ -1635,6 +1635,7 @@ function Main({ appName, aboutText } :any) {
             padding: "0 0 4 0",
             background: "repeating-linear-gradient(45deg, rgb(10 10 10 / 90%), rgb(5 5 5 / 90%) 3px, rgb(0 0 0 / 90%) 3px, rgb(0 0 0 / 90%) 6px)"
         }}>
+            <React.Fragment>
             {/* Tab Bar */}
             <div style={{
                 display: "flex",
@@ -2769,6 +2770,7 @@ function Main({ appName, aboutText } :any) {
                     </div>
                 </>
             )}
+            </React.Fragment>
         </div>
     );
 }
