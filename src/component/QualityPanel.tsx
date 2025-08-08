@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 
 interface Props {
@@ -70,7 +69,7 @@ const QualityPanel: React.FC<Props> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.no-drag')) return;
-    
+
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -86,7 +85,7 @@ const QualityPanel: React.FC<Props> = ({
     if (isDragging) {
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
-      
+
       setPosition({
         x: Math.max(0, Math.min(window.innerWidth - size.width, dragRef.current.startPosX + deltaX)),
         y: Math.max(0, Math.min(window.innerHeight - size.height, dragRef.current.startPosY + deltaY))
@@ -103,7 +102,7 @@ const QualityPanel: React.FC<Props> = ({
     if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
@@ -114,7 +113,7 @@ const QualityPanel: React.FC<Props> = ({
   const handleResize = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsResizing(true);
-    
+
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = size.width;
@@ -123,7 +122,7 @@ const QualityPanel: React.FC<Props> = ({
     const handleResizeMove = (e: MouseEvent) => {
       const deltaX = e.clientX - startX;
       const deltaY = e.clientY - startY;
-      
+
       setSize({
         width: Math.max(280, startWidth + deltaX),
         height: Math.max(400, startHeight + deltaY)
@@ -257,7 +256,7 @@ const QualityPanel: React.FC<Props> = ({
                   🏷️ Add/Edit Watermark
                 </button>
               )}
-              
+
               <div className="toggle-control" onClick={onToggleBorder} style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -280,7 +279,7 @@ const QualityPanel: React.FC<Props> = ({
                   🎨 Add/Edit Border
                 </button>
               )}
-              
+
               <div className="toggle-control" onClick={onToggleSignature} style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -351,6 +350,19 @@ const QualityPanel: React.FC<Props> = ({
               }}>
                 💾 Apply to All Images
               </button>
+              <button
+                                onClick={() => window.loadSavedAdjustments && window.loadSavedAdjustments(true)}
+                                style={{
+                                    background: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Load Saved Settings
+                            </button>
             </div>
 
             <div className="control-section">

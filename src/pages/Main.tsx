@@ -894,7 +894,7 @@ function Main({ appName, aboutText } :any) {
         }
     }, [selectedFilter, adjustmentValues, enableWatermark, enableBorder, enableSignature, watermarkText, borderWidth, borderColor, signatureText]);
 
-    const handleSaveAdjustments = () => {
+    const handleSaveAdjustments = (fromPreviewPopup: boolean = false) => {
         // Save original cropped images for undo functionality
         setOriginalCroppedImages({ ...croppedImages });
 
@@ -925,7 +925,9 @@ function Main({ appName, aboutText } :any) {
             }
         });
 
-        alert('Quality effects applied to all cropped images! Use Undo to revert changes.');
+        if (!fromPreviewPopup) {
+            alert('Quality effects applied to all cropped images! Use Undo to revert changes.');
+        }
     };
 
     const handleUndoAdjustments = () => {
@@ -947,7 +949,7 @@ function Main({ appName, aboutText } :any) {
         }
     };
 
-    const loadSavedAdjustments = () => {
+    const loadSavedAdjustments = (fromPreviewPopup: boolean = false) => {
         const saved = localStorage.getItem('qualityToolsSettings');
         if (saved) {
             try {
@@ -961,7 +963,9 @@ function Main({ appName, aboutText } :any) {
                 setEnableWatermark(data.enableWatermark || false);
                 setEnableBorder(data.enableBorder || false);
                 setEnableSignature(data.enableSignature || false);
-                alert('Quality tool settings loaded!');
+                if (!fromPreviewPopup) {
+                    alert('Quality tool settings loaded!');
+                }
             } catch (error) {
                 console.error('Error loading saved settings:', error);
             }
@@ -2465,7 +2469,7 @@ function Main({ appName, aboutText } :any) {
                         />
                         <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
                             <button
-                                onClick={loadSavedAdjustments}
+                                onClick={() => loadSavedAdjustments(true)}
                                 style={{
                                     background: '#4CAF50',
                                     color: 'white',
@@ -2639,11 +2643,11 @@ function Main({ appName, aboutText } :any) {
                                     </div>
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
                                         <button
-                                            onClick={handleSaveAdjustments}
+                                            onClick={() => handleSaveAdjustments(true)}
                                             style={{
                                                 flex: 1,
-                                                background: "#4CAF50",
-                                                color: "white",
+                                                background: '#4CAF50',
+                                                color: 'white',
                                                 border: "none",
                                                 padding: "8px",
                                                 borderRadius: "3px",
