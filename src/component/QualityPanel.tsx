@@ -351,17 +351,19 @@ const QualityPanel: React.FC<Props> = ({
                 💾 Apply to All Images
               </button>
               <button
-                                onClick={() => window.loadSavedAdjustments && window.loadSavedAdjustments(true)}
+                                onClick={() => {
+                                  const loadFunction = (window as any).loadSavedAdjustments;
+                                  if (loadFunction) loadFunction(true);
+                                }}
+                                className="quality-btn"
                                 style={{
+                                    width: '100%',
+                                    marginBottom: '8px',
                                     background: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '10px 20px',
-                                    borderRadius: '5px',
-                                    cursor: 'pointer'
+                                    color: 'white'
                                 }}
                             >
-                                Load Saved Settings
+                                📥 Load Saved Settings
                             </button>
             </div>
 

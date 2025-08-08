@@ -758,7 +758,7 @@ function Main({ appName, aboutText } :any) {
         if (firstCropKey && crops[firstCropKey]) {
             // Generate cropped image for preview
             const crop = crops[firstCropKey];
-            const croppedImage = generateCroppedImage(crop, parseInt(firstCropKey));
+            const croppedImage = generateEnhancedCroppedImage(crop, parseInt(firstCropKey));
             setQualityPreviewImage(croppedImage.dataUrl);
         } else if (files.length > 0) {
             // Fallback to original image if no crops exist yet
@@ -917,7 +917,7 @@ function Main({ appName, aboutText } :any) {
         Object.keys(crops).forEach((key) => {
             const crop = crops[key];
             if (crop) {
-                const enhancedImage = generateCroppedImage(crop, parseInt(key));
+                const enhancedImage = generateEnhancedCroppedImage(crop, parseInt(key));
                 setCroppedImages((prev: any) => ({
                     ...prev,
                     [key]: enhancedImage.dataUrl
@@ -972,6 +972,14 @@ function Main({ appName, aboutText } :any) {
         }
     };
 
+    // Make function available on window object
+    React.useEffect(() => {
+        (window as any).loadSavedAdjustments = loadSavedAdjustments;
+        return () => {
+            delete (window as any).loadSavedAdjustments;
+        };
+    }, [loadSavedAdjustments]);
+
     const handleSharePDF = async () => {
         try {
             const { jsPDF } = await import('jspdf');
@@ -995,8 +1003,8 @@ function Main({ appName, aboutText } :any) {
                 }
                 isFirstPage = false;
 
-                // Generate image with all quality effects applied
-                const enhancedImage = generateCroppedImage(crop, index);
+                // Generate image with all quality effects applied - consistent with preview
+                const enhancedImage = generateEnhancedCroppedImage(crop, index);
 
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
@@ -1069,8 +1077,82 @@ function Main({ appName, aboutText } :any) {
 
         ctx.scale(pixelRatio, pixelRatio);
 
-        // Apply transformations before drawing
-        applyImageTransformations(canvas, ctx);
+        ctx.drawImage(
+            image,
+            crop.x * scaleX,
+            crop.y * scaleY,
+            crop.width * scaleX,
+            crop.height * scaleY,
+            0,
+            0,
+            resizeImageToCrop.width,
+            resizeImageToCrop.height
+        );
+
+        return {
+            canvas,
+            dataUrl: canvas.toDataURL("image/png"),
+            filename: crop?.name || `cropped_${String(index + 1).padStart(3, '0')}.png`
+        };
+    };
+
+    // Enhanced version that applies all effects consistently
+    const generateEnhancedCroppedImage = (crop: any, index: number) => {
+        const resizeImageToCrop = resizeOnExport && cropSize != null && cropSize.width === cropSize.height ? cropSize : crop;
+        const image = crop?.image;
+        if (!image || !image.naturalWidth || !image.naturalHeight) {
+            console.error('Invalid image data for crop:', crop, index);
+            return {
+                canvas: null,
+                dataUrl: '',
+                filename: `cropped_${String(index + 1).padStart(3, '0')}.png`
+            };
+        }
+        const canvas = document.createElement("canvas");
+        const scaleX = image.naturalWidth / image.width;
+        const scaleY = image.naturalHeight / image.height;
+
+        const pixelRatio = Math.max(window.devicePixelRatio * 2, 4);
+        canvas.width = resizeImageToCrop.width * pixelRatio;
+        canvas.height = resizeImageToCrop.height * pixelRatio;
+
+        const ctx: any = canvas.getContext("2d");
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.textRenderingOptimization = "optimizeQuality";
+
+        ctx.scale(pixelRatio, pixelRatio);
+
+        // Apply transformations before drawing - consistent with preview
+        let filterString = '';
+        if (selectedFilter) {
+            filterString += selectedFilter.cssFilter;
+        }
+        if (adjustmentValues) {
+            const filters = [];
+            if (adjustmentValues.brightness !== 0) {
+                filters.push(`brightness(${1 + adjustmentValues.brightness / 100})`);
+            }
+            if (adjustmentValues.contrast !== 0) {
+                filters.push(`contrast(${1 + adjustmentValues.contrast / 100})`);
+            }
+            if (adjustmentValues.saturation !== 0) {
+                filters.push(`saturate(${1 + adjustmentValues.saturation / 100})`);
+            }
+            if (adjustmentValues.hue !== 0) {
+                filters.push(`hue-rotate(${adjustmentValues.hue}deg)`);
+            }
+            if (adjustmentValues.blur !== 0) {
+                filters.push(`blur(${adjustmentValues.blur}px)`);
+            }
+            if (adjustmentValues.sharpen !== 0) {
+                filters.push(`contrast(${1 + adjustmentValues.sharpen / 50})`);
+            }
+            filterString += (filterString ? ' ' : '') + filters.join(' ');
+        }
+
+        ctx.filter = filterString || 'none';
 
         ctx.drawImage(
             image,
@@ -1115,7 +1197,7 @@ function Main({ appName, aboutText } :any) {
         indicesToSave.forEach((index: number) => {
             const crop = crops[index];
             if (crop) {
-                const croppedImage = generateCroppedImage(crop, index);
+                const croppedImage = generateEnhancedCroppedImage(crop, index);
                 if (croppedImage.canvas && croppedImage.dataUrl) {
                     const link = document.createElement('a');
                     link.download = croppedImage.filename;
@@ -1153,7 +1235,7 @@ function Main({ appName, aboutText } :any) {
                 const crop = crops[index];
                 if (crop) {
                     try {
-                        const croppedImage = generateCroppedImage(crop, index);
+                        const croppedImage = generateEnhancedCroppedImage(crop, index);
                         if (!croppedImage.canvas || !croppedImage.dataUrl) {
                             console.warn(`Skipping image ${index} due to invalid data`);
                             continue;
@@ -1239,7 +1321,7 @@ function Main({ appName, aboutText } :any) {
                     }
                     isFirstPage = false;
 
-                    const croppedImage = generateCroppedImage(crop, index);
+                    const croppedImage = generateEnhancedCroppedImage(crop, index);
                     if (!croppedImage.canvas) {
                         console.warn(`Skipping image ${index} due to invalid data`);
                         continue;
@@ -1518,10 +1600,10 @@ function Main({ appName, aboutText } :any) {
 
         setCurrentPreviewIndex(nextImageIndex);
 
-        // Generate preview for the next image
+        // Generate preview for the next image with all effects applied
         const crop = crops[nextImageIndex];
         if (crop) {
-            const enhancedImage = generateCroppedImage(crop, nextImageIndex);
+            const enhancedImage = generateEnhancedCroppedImage(crop, nextImageIndex);
             setPreviewImage(enhancedImage.dataUrl);
         }
     };
@@ -1536,10 +1618,10 @@ function Main({ appName, aboutText } :any) {
 
         setCurrentPreviewIndex(prevImageIndex);
 
-        // Generate preview for the previous image
+        // Generate preview for the previous image with all effects applied
         const crop = crops[prevImageIndex];
         if (crop) {
-            const enhancedImage = generateCroppedImage(crop, prevImageIndex);
+            const enhancedImage = generateEnhancedCroppedImage(crop, prevImageIndex);
             setPreviewImage(enhancedImage.dataUrl);
         }
     };
