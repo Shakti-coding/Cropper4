@@ -1142,10 +1142,10 @@ function Main({ appName, aboutText } :any) {
             const scaleX = image.naturalWidth / image.width;
             const scaleY = image.naturalHeight / image.height;
 
-            // Use consistent sizing for better quality
-            const targetWidth = resizeImageToCrop.width || crop.width;
-            const targetHeight = resizeImageToCrop.height || crop.height;
-            
+            // Use consistent sizing for better quality, but match original resolution
+            const targetWidth = (resizeImageToCrop.width || crop.width) * scaleX;
+            const targetHeight = (resizeImageToCrop.height || crop.height) * scaleY;
+
             canvas.width = targetWidth;
             canvas.height = targetHeight;
 
