@@ -1,0 +1,36 @@
+SQLite format 3@  		.�
+
+w��
+
+B�%%�Gtableupdate_stateupdate_stateCREATE TABLE update_state (
+                    id integer primary key,
+                    pts integer,
+                    qts integer,
+                    date integer,
+                    seq integer
+                )�9!!�=tablesent_filessent_filesCREATE TABLE sent_files (
+                    md5_digest blob,
+                    file_size integer,
+                    type integer,
+                    id integer,
+                    hash integer,
+                    primary key(md5_digest, file_size, type)
+                )3G!indexsqlite_autoindex_sent_files_1sent_files�#�tableentitiesentitiesCREATE TABLE entities (
+                    id integer primary key,
+                    hash integer not null,
+                    username text,
+                    phone integer,
+                    name text,
+                    date integer
+                )�
+�gtablesessionssessionsCREATE TABLE sessions (
+                    dc_id integer primary key,
+                    server_address text,
+                    port integer,
+                    auth_key blob,
+                    takeout_id integer
+                )LqtableversionversionCREATE TABLE version (version integer primary key)
+��
+���)�149.154.167.51�uzW>;����X�	���N�_@��k�����'��`1ϓ��^b��ŒG{*:ct<�I�X�{}�l`���ۑ�i�[����5��}���Tq�-d����A�� � B��%ݍU[ ��G9�G�4O�]߼�'0���v���6v�1E���	�~1�y�|Q=��P��O��4�/���c�#N=:��$;�b���Z��M��dZ��[���zx�ySBl������ԪBPC}&�xuc0��[!�
+
+
